@@ -1,25 +1,21 @@
 import 'dotenv/config';
+import { loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { createLogger } from './logger.js';
 import { ThreadRepository } from './repositories/threads.js';
 import { MessageRepository } from './repositories/messages.js';
 import { buildServer } from './api/server.js';
 
-const logger = createLogger(process.env.LOG_LEVEL ?? 'info');
+const config = loadConfig();
+const logger = createLogger({ level: config.logLevel, pretty: config.prettyLogs });
 
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-  logger.fatal('DATABASE_URL is required');
-  process.exit(1);
-}
-
-const db = createDb(connectionString);
+const db = createDb(config.databaseUrl);
 const threadRepo = new ThreadRepository(db);
 const messageRepo = new MessageRepository(db);
 
 const server = buildServer(logger);
 
-const port = parseInt(process.env.PORT ?? '3000', 10);
+const port = config.port;
 
 async function start() {
   try {

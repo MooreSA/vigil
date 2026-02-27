@@ -1,9 +1,14 @@
 import pino from 'pino';
 
-export function createLogger(level: string = 'info') {
+interface LoggerOptions {
+  level: string;
+  pretty: boolean;
+}
+
+export function createLogger(options: LoggerOptions) {
   return pino({
-    level,
-    ...(process.env.NODE_ENV !== 'production' && {
+    level: options.level,
+    ...(options.pretty && {
       transport: {
         target: 'pino-pretty',
         options: { colorize: true },

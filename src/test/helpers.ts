@@ -1,14 +1,7 @@
-import { Kysely, PostgresDialect, sql } from 'kysely';
-import pg from 'pg';
+import { sql } from 'kysely';
+import type { Kysely } from 'kysely';
 import type { DB } from '../db/types.js';
-
-export function createTestDb(connectionString: string): Kysely<DB> {
-  return new Kysely<DB>({
-    dialect: new PostgresDialect({
-      pool: new pg.Pool({ connectionString }),
-    }),
-  });
-}
+export { createDb as createTestDb } from '../db/client.js';
 
 const TABLES_IN_DELETE_ORDER = [
   'job_runs',
