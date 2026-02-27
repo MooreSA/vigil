@@ -90,7 +90,8 @@ async function shutdown(signal: string) {
   process.exit(0);
 }
 
+// SIGTERM: exit immediately so tsx watch can reclaim the port
+process.on('SIGTERM', () => process.exit(0));
 process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 start();

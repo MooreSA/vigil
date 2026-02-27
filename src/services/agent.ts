@@ -127,12 +127,12 @@ export class AgentService {
           yield { type: 'delta', content: event.data.delta };
         } else if (event.type === 'run_item_stream_event') {
           const item = event.item as { type?: string; rawItem?: Record<string, unknown> };
-          if (item.type === 'function_call_item' && item.rawItem) {
+          if (item.type === 'tool_call_item' && item.rawItem) {
             const toolName = (item.rawItem.name as string) ?? '';
             const toolArgs = (item.rawItem.arguments as string) ?? '';
             self.logger.info({ tool: toolName, arguments: toolArgs, threadId }, 'Tool call started');
             yield { type: 'tool_call', name: toolName, arguments: toolArgs };
-          } else if (item.type === 'function_call_result_item' && item.rawItem) {
+          } else if (item.type === 'tool_call_output_item' && item.rawItem) {
             const toolName = (item.rawItem.name as string) ?? '';
             const toolOutput = (item.rawItem.output as string) ?? '';
             self.logger.info({ tool: toolName, outputLength: toolOutput.length, threadId }, 'Tool call completed');
