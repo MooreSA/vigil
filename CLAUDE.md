@@ -9,6 +9,7 @@ See PROJECT_BRIEF.md for full context, ARCHITECTURE.md for design decisions, SCH
 - **Runtime:** OpenAI Agents SDK (TypeScript) + OpenRouter
 - **Database:** Postgres + pgvector, Kysely query builder
 - **Frontend:** Vue with SSE streaming
+- **Logging:** Pino (Fastify's native logger)
 - **Notifications:** ntfy (self-hosted)
 
 ## Layer Rules
@@ -32,8 +33,10 @@ Nothing points upward. Ever.
 - Message ordering by `id` (bigserial), never by timestamp.
 - Message content is JSONB — the entire OpenAI message object. `role` and `model` columns duplicate for indexing; JSONB is source of truth.
 - `model` column on messages tracks which model produced the response.
+- `src/config.ts` owns all env var reading. Nothing below the composition root reads `process.env`.
 - Constructor injection — never import singletons.
 - Kysely for all DB access. Repositories receive the `Kysely<DB>` instance via constructor.
+- Pino logger created in composition root, passed to Fastify via `loggerInstance`. Use `pino-pretty` in dev (controlled by `config.prettyLogs`).
 - Migrations are TS files in `src/db/migrations/` using Kysely's migrator (`up`/`down` exports).
 - DB type interface lives in `src/db/types.ts` — keep in sync with migrations manually.
 - Use `croner` for cron parsing.
@@ -56,3 +59,4 @@ Nothing points upward. Ever.
 - Rely on `created_at` for ordering.
 - Auto-extract memories — memory is tool-call driven (`remember`/`recall`).
 - Store the system prompt outside the messages table — it's the first message in the thread, role `system`.
+- Read `process.env` outside of `src/config.ts` or `src/index.ts` (standalone scripts like `migrate.ts` are fine).
