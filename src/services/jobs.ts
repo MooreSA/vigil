@@ -12,7 +12,8 @@ interface JobServiceDeps {
 
 interface CreateJobInput {
   name: string;
-  schedule: string;
+  schedule?: string | null;
+  run_at?: Date | string;
   prompt?: string | null;
   enabled?: boolean;
   max_retries?: number;
@@ -22,7 +23,7 @@ interface CreateJobInput {
 
 interface UpdateJobInput {
   name?: string;
-  schedule?: string;
+  schedule?: string | null;
   prompt?: string | null;
   enabled?: boolean;
   max_retries?: number;
@@ -50,9 +51,20 @@ export class JobService {
   }
 
   async create(input: CreateJobInput) {
-    const nextRunAt = this.computeNextRun(input.schedule);
-    if (!nextRunAt) {
-      throw new Error(`Invalid cron expression: ${input.schedule}`);
+    let nextRunAt: Date | string;
+
+    if (input.schedule) {
+      // Recurring job — compute next fire time from cron
+      const computed = this.computeNextRun(input.schedule);
+      if (!computed) {
+        throw new Error(`Invalid cron expression: ${input.schedule}`);
+      }
+      nextRunAt = computed;
+    } else if (input.run_at) {
+      // One-shot job — use the provided timestamp directly
+      nextRunAt = input.run_at;
+    } else {
+      throw new Error('Either schedule (cron) or run_at (timestamp) is required');
     }
 
     if (input.skill_name) {
@@ -64,7 +76,7 @@ export class JobService {
 
     return this.jobRepo.create({
       name: input.name,
-      schedule: input.schedule,
+      schedule: input.schedule ?? null,
       prompt: input.prompt,
       enabled: input.enabled,
       max_retries: input.max_retries,
@@ -112,7 +124,8 @@ export class JobService {
     return this.jobRunRepo.findByJobId(jobId);
   }
 
-  private computeNextRun(schedule: string): Date | null {
+  private computeNextRun(schedule: string | null): Date | null {
+    if (!schedule) return null;
     try {
       const cron = new Cron(schedule);
       return cron.nextRun();
