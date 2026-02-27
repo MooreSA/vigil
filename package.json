@@ -10,7 +10,7 @@
     "migrate": "tsx src/db/migrate.ts",
     "migrate:prod": "node dist/db/migrate.js",
     "build:web": "cd web && npm run build",
-    "test": "vitest run",
+    "test": "vitest run && cd web && npx vitest run",
     "test:watch": "vitest"
   },
   "dependencies": {

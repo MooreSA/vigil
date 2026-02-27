@@ -10,5 +10,6 @@ export default defineConfig({
         singleFork: true,
       },
     },
+    exclude: ['web/**', 'node_modules/**'],
   },
 });

@@ -184,6 +184,31 @@ body {
   background: var(--color-surface);
 }
 
+/* Sidebar thread list transitions */
+.thread-list-enter-active {
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.thread-list-enter-from {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.thread-list-move {
+  transition: transform 0.3s ease;
+}
+
+/* Smooth title text crossfade */
+.title-fade-enter-active,
+.title-fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+
+.title-fade-enter-from,
+.title-fade-leave-to {
+  opacity: 0;
+}
+
 /* Streaming cursor */
 @keyframes blink {
   0%, 100% { opacity: 1; }

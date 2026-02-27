@@ -46,18 +46,22 @@ function formatDate(dateStr: string) {
     </div>
 
     <nav class="flex-1 overflow-y-auto py-2">
-      <router-link
-        v-for="thread in threads"
-        :key="thread.id"
-        :to="`/${thread.id}`"
-        class="block mx-2 mb-0.5 px-3 py-2.5 rounded-lg text-sm transition-colors truncate"
-        :class="isActive(thread.id)
-          ? 'bg-surface-hover text-text'
-          : 'text-text-muted hover:bg-surface-hover hover:text-text'"
-      >
-        <div class="truncate">{{ threadTitle(thread) }}</div>
-        <div class="text-xs text-text-muted mt-0.5">{{ formatDate(thread.updated_at) }}</div>
-      </router-link>
+      <TransitionGroup name="thread-list">
+        <router-link
+          v-for="thread in threads"
+          :key="thread.id"
+          :to="`/${thread.id}`"
+          class="block mx-2 mb-0.5 px-3 py-2.5 rounded-lg text-sm transition-colors truncate"
+          :class="isActive(thread.id)
+            ? 'bg-surface-hover text-text'
+            : 'text-text-muted hover:bg-surface-hover hover:text-text'"
+        >
+          <Transition name="title-fade" mode="out-in">
+            <div class="truncate thread-title" :key="threadTitle(thread)">{{ threadTitle(thread) }}</div>
+          </Transition>
+          <div class="text-xs text-text-muted mt-0.5">{{ formatDate(thread.updated_at) }}</div>
+        </router-link>
+      </TransitionGroup>
 
       <div v-if="threads.length === 0" class="px-5 py-8 text-center text-text-muted text-sm">
         No conversations yet
