@@ -149,6 +149,30 @@ describe('SchedulerService', () => {
       expect(jobRepo.update).toHaveBeenCalledWith('1', { enabled: false });
     });
 
+    it('disables one-shot job (null schedule) after it fires', async () => {
+      const dueJob = {
+        id: '3',
+        name: 'Reminder',
+        schedule: null,
+        prompt: 'Do the thing',
+        enabled: true,
+        max_retries: 3,
+        skill_name: null,
+        skill_config: null,
+        next_run_at: new Date('2026-02-27T15:00:00Z'),
+        last_run_at: null,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      };
+      vi.mocked(jobRepo.findDue).mockResolvedValue([dueJob]);
+
+      await scheduler.tick();
+
+      expect(jobRunRepo.createIdempotent).toHaveBeenCalledWith('3', dueJob.next_run_at);
+      expect(jobRepo.update).toHaveBeenCalledWith('3', { enabled: false });
+    });
+
     it('does nothing when no pending runs to claim', async () => {
       await scheduler.tick();
 

@@ -84,7 +84,7 @@ export class SchedulerService {
         if (nextFireTime) {
           await this.jobRepo.update(job.id, { next_run_at: nextFireTime });
         } else {
-          this.logger.warn({ jobId: job.id, schedule: job.schedule }, 'Could not compute next run time, disabling job');
+          this.logger.info({ jobId: job.id, schedule: job.schedule }, 'No next run time — disabling job');
           await this.jobRepo.update(job.id, { enabled: false });
         }
       }
@@ -187,7 +187,8 @@ export class SchedulerService {
     }
   }
 
-  private computeNextRun(schedule: string): Date | null {
+  private computeNextRun(schedule: string | null): Date | null {
+    if (!schedule) return null;
     try {
       const cron = new Cron(schedule);
       const next = cron.nextRun();

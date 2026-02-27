@@ -3,7 +3,7 @@ import type { DB } from '../db/types.js';
 
 export interface CreateJobInput {
   name: string;
-  schedule: string;
+  schedule?: string | null;
   prompt?: string | null;
   enabled?: boolean;
   max_retries?: number;
@@ -14,7 +14,7 @@ export interface CreateJobInput {
 
 export interface UpdateJobInput {
   name?: string;
-  schedule?: string;
+  schedule?: string | null;
   prompt?: string | null;
   enabled?: boolean;
   max_retries?: number;
@@ -32,7 +32,7 @@ export class JobRepository {
       .insertInto('jobs')
       .values({
         name: input.name,
-        schedule: input.schedule,
+        schedule: input.schedule ?? null,
         prompt: input.prompt ?? null,
         enabled: input.enabled ?? true,
         max_retries: input.max_retries ?? 3,

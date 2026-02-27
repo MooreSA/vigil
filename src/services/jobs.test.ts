@@ -93,6 +93,34 @@ describe('JobService', () => {
         }),
       ).rejects.toThrow('Invalid cron expression');
     });
+
+    it('creates a one-shot job with run_at and null schedule', async () => {
+      const runAt = new Date('2026-03-01T15:00:00Z');
+      const job = await service.create({
+        name: 'Reminder',
+        run_at: runAt,
+        prompt: 'Do the thing',
+      });
+
+      expect(jobRepo.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Reminder',
+          schedule: null,
+          prompt: 'Do the thing',
+          next_run_at: runAt,
+        }),
+      );
+      expect(job).toBeDefined();
+    });
+
+    it('throws when neither schedule nor run_at is provided', async () => {
+      await expect(
+        service.create({
+          name: 'Missing both',
+          prompt: 'nope',
+        }),
+      ).rejects.toThrow('Either schedule (cron) or run_at (timestamp) is required');
+    });
   });
 
   describe('list', () => {

@@ -34,7 +34,7 @@ export interface MemoryEntriesTable {
 export interface JobsTable {
   id: Generated<string>;
   name: string;
-  schedule: string;
+  schedule: string | null;
   prompt: string | null;
   enabled: Generated<boolean>;
   max_retries: Generated<number>;
