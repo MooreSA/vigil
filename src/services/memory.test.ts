@@ -62,15 +62,10 @@ beforeEach(() => {
 
 describe('MemoryService', () => {
   describe('remember', () => {
-    it('embeds content and creates a new entry when no duplicates', async () => {
+    it('embeds content and creates a new entry', async () => {
       const result = await service.remember('User likes TypeScript');
 
       expect(embeddingService.embed).toHaveBeenCalledWith('User likes TypeScript');
-      expect(memoryRepo.similaritySearch).toHaveBeenCalledWith(
-        expect.any(Array),
-        1,
-        0.85,
-      );
       expect(memoryRepo.create).toHaveBeenCalledWith({
         content: 'User likes TypeScript',
         embedding: expect.any(Array),
@@ -80,19 +75,8 @@ describe('MemoryService', () => {
       expect(result).toBeDefined();
     });
 
-    it('updates existing entry when similarity exceeds threshold', async () => {
-      const existing: SimilarityResult = {
-        id: '42',
-        content: 'User likes TS',
-        source: 'agent',
-        thread_id: null,
-        similarity: 0.97,
-        created_at: new Date(),
-        updated_at: new Date(),
-      };
-      vi.mocked(memoryRepo.similaritySearch).mockResolvedValue([existing]);
-
-      await service.remember('User likes TypeScript');
+    it('updates existing entry when replaceId is provided', async () => {
+      await service.remember('User likes TypeScript', 'agent', undefined, '42');
 
       expect(memoryRepo.update).toHaveBeenCalledWith(
         '42',
@@ -100,6 +84,13 @@ describe('MemoryService', () => {
         expect.any(Array),
       );
       expect(memoryRepo.create).not.toHaveBeenCalled();
+    });
+
+    it('creates new entry when replaceId is not provided', async () => {
+      await service.remember('User likes TypeScript');
+
+      expect(memoryRepo.create).toHaveBeenCalled();
+      expect(memoryRepo.update).not.toHaveBeenCalled();
     });
 
     it('passes source and threadId through', async () => {

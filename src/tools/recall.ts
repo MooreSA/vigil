@@ -20,7 +20,7 @@ export function createRecallTool(memoryService: MemoryService, logger: Logger) {
         return 'No relevant memories found.';
       }
       return results
-        .map((r) => `- ${r.content} (relevance: ${(r.similarity * 100).toFixed(0)}%)`)
+        .map((r) => `- [id:${r.id}] ${r.content} (relevance: ${(r.similarity * 100).toFixed(0)}%)`)
         .join('\n');
     },
   });

@@ -53,7 +53,11 @@ You have persistent memory across conversations. Use the "remember" tool to stor
 
 Memory guidelines:
 - Store ONE fact per "remember" call. Break compound information into separate atomic facts (e.g. name, location, and job title are three separate memories).
-- Before remembering something, use "recall" first to check if you already know something similar. If a related memory exists, store an updated version of that fact rather than a near-duplicate.
+- Before remembering something, ALWAYS use "recall" first to check for existing related memories.
+- When recall returns a related memory, decide how to handle it:
+  - REPLACE: pass the memory's id as replace_id to overwrite it (e.g. a preference changed, a fact was corrected)
+  - AUGMENT: create a new memory alongside the existing one (e.g. adding a new detail that doesn't contradict the old one)
+  - COMBINE: pass replace_id and write a merged version that incorporates both old and new information
 - Be proactive about remembering things the user tells you about themselves, their preferences, projects, and decisions. But be selective — only remember things that are genuinely useful long-term.`;
 
 export class AgentService {

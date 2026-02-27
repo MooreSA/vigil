@@ -8,7 +8,6 @@ interface MemoryServiceDeps {
   logger: Logger;
 }
 
-const DEDUP_THRESHOLD = 0.85;
 const RECALL_THRESHOLD = 0.3;
 const RECALL_DEFAULT_LIMIT = 10;
 
@@ -27,21 +26,13 @@ export class MemoryService {
     content: string,
     source: 'agent' | 'user' = 'agent',
     threadId?: string | null,
+    replaceId?: string,
   ) {
     const embedding = await this.embeddingService.embed(content);
 
-    const similar = await this.memoryRepo.similaritySearch(
-      embedding,
-      1,
-      DEDUP_THRESHOLD,
-    );
-
-    if (similar.length > 0) {
-      this.logger.info(
-        { existingId: similar[0].id, similarity: similar[0].similarity },
-        'Dedup: updating existing memory entry',
-      );
-      return this.memoryRepo.update(similar[0].id, content, embedding);
+    if (replaceId) {
+      this.logger.info({ replaceId }, 'Replacing existing memory entry');
+      return this.memoryRepo.update(replaceId, content, embedding);
     }
 
     return this.memoryRepo.create({ content, embedding, source, thread_id: threadId });
