@@ -10,6 +10,7 @@ const envSchema = z.object({
   OPENROUTER_CHAT_MODEL: z.string().default('anthropic/claude-sonnet-4'),
   OPENROUTER_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
   AGENT_MAX_ITERATIONS: z.coerce.number().int().default(25),
+  GOOGLE_MAPS_API_KEY: z.string().optional(),
 });
 
 export type Config = {
@@ -21,6 +22,7 @@ export type Config = {
   openRouterChatModel: string;
   openRouterEmbeddingModel: string;
   agentMaxIterations: number;
+  googleMapsApiKey?: string;
 };
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
@@ -45,5 +47,6 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     openRouterChatModel: parsed.OPENROUTER_CHAT_MODEL,
     openRouterEmbeddingModel: parsed.OPENROUTER_EMBEDDING_MODEL,
     agentMaxIterations: parsed.AGENT_MAX_ITERATIONS,
+    googleMapsApiKey: parsed.GOOGLE_MAPS_API_KEY,
   };
 }

@@ -47,7 +47,11 @@ const memoryService = new MemoryService({
   logger: logger.child({ service: 'memory' }),
 });
 
-const tools = createTools(memoryService, logger);
+const tools = createTools({
+  memoryService,
+  logger,
+  googleMapsApiKey: config.googleMapsApiKey,
+});
 
 const eventBus = createEventBus();
 
