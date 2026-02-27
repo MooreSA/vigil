@@ -43,6 +43,7 @@ beforeEach(() => {
   runFn = vi.fn<RunFn>();
   service = new AgentService({
     model: {} as OpenAIChatCompletionsModel,
+    modelName: 'anthropic/claude-sonnet-4',
     threadService,
     logger,
     maxIterations: 5,
@@ -94,6 +95,7 @@ describe('AgentService', () => {
       expect(assistantCall![0]).toEqual({
         thread_id: 't1',
         role: 'assistant',
+        model: 'anthropic/claude-sonnet-4',
         content: { role: 'assistant', content: 'Good morning' },
       });
     });

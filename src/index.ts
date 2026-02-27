@@ -1,6 +1,6 @@
 import 'dotenv/config';
 import OpenAI from 'openai';
-import { OpenAIChatCompletionsModel } from '@openai/agents';
+import { OpenAIChatCompletionsModel, setTracingDisabled } from '@openai/agents';
 import { loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { createLogger } from './logger.js';
@@ -9,6 +9,8 @@ import { MessageRepository } from './repositories/messages.js';
 import { ThreadService } from './services/threads.js';
 import { AgentService } from './services/agent.js';
 import { buildServer } from './api/server.js';
+
+setTracingDisabled(true);
 
 const config = loadConfig();
 const logger = createLogger({ level: config.logLevel, pretty: config.prettyLogs });
@@ -29,6 +31,7 @@ const chatModel = new OpenAIChatCompletionsModel(openRouterClient, config.openRo
 
 const agentService = new AgentService({
   model: chatModel,
+  modelName: config.openRouterChatModel,
   threadService,
   logger: logger.child({ service: 'agent' }),
   maxIterations: config.agentMaxIterations,

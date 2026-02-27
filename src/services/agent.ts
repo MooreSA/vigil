@@ -4,15 +4,11 @@ import {
   user,
   assistant,
   system,
-  setTracingDisabled,
 } from '@openai/agents';
 import type { OpenAIChatCompletionsModel, StreamedRunResult } from '@openai/agents';
 import type { AgentInputItem } from '@openai/agents';
 import type { Logger } from '../logger.js';
 import type { ThreadService } from './threads.js';
-
-// Disable SDK tracing — we're not using OpenAI's backend
-setTracingDisabled(true);
 
 export type RunFn = (
   agent: Agent,
@@ -22,6 +18,7 @@ export type RunFn = (
 
 interface AgentServiceDeps {
   model: OpenAIChatCompletionsModel;
+  modelName: string;
   threadService: ThreadService;
   logger: Logger;
   maxIterations: number;
@@ -30,6 +27,7 @@ interface AgentServiceDeps {
 
 export class AgentService {
   private model: OpenAIChatCompletionsModel;
+  private modelName: string;
   private threadService: ThreadService;
   private logger: Logger;
   private maxIterations: number;
@@ -37,6 +35,7 @@ export class AgentService {
 
   constructor(deps: AgentServiceDeps) {
     this.model = deps.model;
+    this.modelName = deps.modelName;
     this.threadService = deps.threadService;
     this.logger = deps.logger;
     this.maxIterations = deps.maxIterations;
@@ -81,6 +80,7 @@ export class AgentService {
     await this.threadService.addMessage({
       thread_id: threadId,
       role: 'assistant',
+      model: this.modelName,
       content: { role: 'assistant', content: fullText },
     });
   }
