@@ -125,8 +125,8 @@ Each step is independently usable:
 2. **Agent loop** -- Basic chat completions through OpenRouter via the Agents SDK, no tools yet ✓
 3. **Thread management** -- Create, list, continue conversations with isolated history ✓
 4. **Minimal Vue frontend** -- Thread list, chat view, SSE streaming ✓
-5. **Core memory** -- Embedding storage via OpenRouter, similarity recall via pgvector, `remember`/`recall` tools
-6. **Tools** -- Start with 1-2 useful ones (e.g., web search, shell command)
+5. **Core memory** -- Embedding storage via OpenRouter, similarity recall via pgvector, `remember`/`recall` tools ✓
+6. **Tools** -- Start with 1-2 useful ones (e.g., web search, shell command) ✓ (time, fetch_url, directions)
 7. **Scheduler + ntfy** -- Job queue, wake behavior, thread creation, push notifications
 
 After step 4: working chat app.
@@ -137,14 +137,14 @@ After step 7: it wakes up and reaches out to you.
 
 ## Known Risks
 
-| Risk | Mitigation |
-|------|-----------|
-| Cost runaway | Max iterations per loop, daily spend caps, tiered model routing |
-| Tool execution safety | Confirmation gates for destructive actions, read-only vs write tool separation, Docker sandboxing later |
-| Memory quality | Tool-call-driven extraction, admin endpoints for review/edit/delete |
-| Context window growth | Embedding-based semantic search, top-N relevant memories per thread |
-| Wake task reliability | Postgres-backed job queue, idempotent creation, stale run recovery |
-| Model inconsistency via OpenRouter | Settle on 1-2 models, test tool calling before swapping |
-| Agent loop latency (15-20s) | SSE streaming, UI shows tool execution status |
+| Risk                                  | Mitigation                                                                                                                                                   |
+|---------------------------------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Cost runaway                          | Max iterations per loop, daily spend caps, tiered model routing                                                                                              |
+| Tool execution safety                 | Confirmation gates for destructive actions, read-only vs write tool separation, Docker sandboxing later                                                      |
+| Memory quality                        | Tool-call-driven extraction, admin endpoints for review/edit/delete                                                                                          |
+| Context window growth                 | Embedding-based semantic search, top-N relevant memories per thread                                                                                          |
+| Wake task reliability                 | Postgres-backed job queue, idempotent creation, stale run recovery                                                                                           |
+| Model inconsistency via OpenRouter    | Settle on 1-2 models, test tool calling before swapping                                                                                                      |
+| Agent loop latency (15-20s)           | SSE streaming, UI shows tool execution status                                                                                                                |
 | Agents SDK + OpenRouter compatibility | Spiked in step 2 -- works. `OpenAIChatCompletionsModel` with a custom `OpenAI` client pointed at OpenRouter streams correctly. No compatibility shim needed. |
-| Scope creep | Build order defines the MVP. Ship it, live with it, then decide. |
+| Scope creep                           | Build order defines the MVP. Ship it, live with it, then decide.                                                                                             |

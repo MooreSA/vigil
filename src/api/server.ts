@@ -10,10 +10,12 @@ import type { AgentService } from '../services/agent.js';
 import type { ThreadService } from '../services/threads.js';
 import type { MemoryService } from '../services/memory.js';
 import type { EventBus } from '../events.js';
+import type { JobService } from '../services/jobs.js';
 import { completionsRoute } from './routes/completions.js';
 import { threadsRoute } from './routes/threads.js';
 import { eventsRoute } from './routes/events.js';
 import { memoryRoute } from './routes/memory.js';
+import { jobsRoute } from './routes/jobs.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -24,9 +26,10 @@ interface ServerDeps {
   threadService: ThreadService;
   memoryService: MemoryService;
   eventBus: EventBus;
+  jobService: JobService;
 }
 
-export function buildServer({ logger, db, agentService, threadService, memoryService, eventBus }: ServerDeps) {
+export function buildServer({ logger, db, agentService, threadService, memoryService, eventBus, jobService }: ServerDeps) {
   const app = Fastify({ loggerInstance: logger, forceCloseConnections: true });
 
   app.get('/healthz', async (_req, reply) => {
@@ -43,6 +46,7 @@ export function buildServer({ logger, db, agentService, threadService, memorySer
   app.register(threadsRoute, { prefix: '/v1', threadService });
   app.register(eventsRoute, { prefix: '/v1', eventBus });
   app.register(memoryRoute, { prefix: '/v1', memoryService });
+  app.register(jobsRoute, { prefix: '/v1', jobService });
 
   // Serve built Vue app if web/dist exists
   const webDistPath = path.join(__dirname, '../../web/dist');
