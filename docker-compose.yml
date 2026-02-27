@@ -1,0 +1,15 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    container_name: vigil-postgres
+    environment:
+      POSTGRES_USER: vigil
+      POSTGRES_PASSWORD: vigil
+      POSTGRES_DB: vigil
+    ports:
+      - "5433:5432"
+    volumes:
+      - vigil-pgdata:/var/lib/postgresql/data
+
+volumes:
+  vigil-pgdata:
