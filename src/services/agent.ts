@@ -1,12 +1,12 @@
 import {
   Agent,
-  run,
+  run as sdkRun,
   user,
   assistant,
   system,
   setTracingDisabled,
 } from '@openai/agents';
-import type { OpenAIChatCompletionsModel } from '@openai/agents';
+import type { OpenAIChatCompletionsModel, StreamedRunResult } from '@openai/agents';
 import type { AgentInputItem } from '@openai/agents';
 import type { Logger } from '../logger.js';
 import type { ThreadService } from './threads.js';
@@ -14,11 +14,18 @@ import type { ThreadService } from './threads.js';
 // Disable SDK tracing — we're not using OpenAI's backend
 setTracingDisabled(true);
 
+export type RunFn = (
+  agent: Agent,
+  input: AgentInputItem[],
+  options: { stream: true; maxTurns: number },
+) => Promise<StreamedRunResult<any, any>>;
+
 interface AgentServiceDeps {
   model: OpenAIChatCompletionsModel;
   threadService: ThreadService;
   logger: Logger;
   maxIterations: number;
+  run?: RunFn;
 }
 
 export class AgentService {
@@ -26,12 +33,14 @@ export class AgentService {
   private threadService: ThreadService;
   private logger: Logger;
   private maxIterations: number;
+  private run: RunFn;
 
   constructor(deps: AgentServiceDeps) {
     this.model = deps.model;
     this.threadService = deps.threadService;
     this.logger = deps.logger;
     this.maxIterations = deps.maxIterations;
+    this.run = deps.run ?? sdkRun;
   }
 
   async *runStream(threadId: string, userMessage: string): AsyncGenerator<string> {
@@ -50,7 +59,7 @@ export class AgentService {
       model: this.model,
     });
 
-    const result = await run(agent, inputItems, {
+    const result = await this.run(agent, inputItems, {
       stream: true,
       maxTurns: this.maxIterations,
     });

@@ -14,7 +14,9 @@ let testDbName: string;
 export async function setup(project: TestProject): Promise<void> {
   const baseUrl = process.env.DATABASE_URL;
   if (!baseUrl) {
-    throw new Error('DATABASE_URL is required to run tests');
+    // No database — skip DB setup. Unit tests will still run;
+    // integration tests will fail when they try to inject testDatabaseUrl.
+    return;
   }
   const parsed = new URL(baseUrl);
 
@@ -56,6 +58,7 @@ export async function setup(project: TestProject): Promise<void> {
 }
 
 export async function teardown(): Promise<void> {
+  if (!adminClient) return;
   // Force disconnect all connections to the test database before dropping
   await adminClient.query(`
     SELECT pg_terminate_backend(pid)

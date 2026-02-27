@@ -8,7 +8,7 @@ Go is the stronger language professionally, but the OpenAI Agents SDK only exist
 ### OpenRouter over direct provider APIs
 Adds a middleman (slight latency, additional point of failure) but provides model flexibility through a single API. Enables cost-tiered routing and avoids vendor lock-in. Consolidates embeddings under the same provider.
 
-**Known risk:** The Agents SDK expects to talk to OpenAI's API. OpenRouter is "OpenAI-compatible" but gaps show up in streaming chunk formats, tool call deltas, and error shapes. Spike this early (build step 2) before building on top of it. Budget time for a compatibility shim.
+**Validated:** The Agents SDK's `OpenAIChatCompletionsModel` accepts a standard `OpenAI` client with a custom `baseURL`. Pointed at `https://openrouter.ai/api/v1`, streaming works out of the box -- no compatibility shim needed. One TS type quirk: the `openai` package ships dual CJS/ESM declarations with incompatible `#private` fields, requiring a `@ts-expect-error` at the construction site in `index.ts`. Runtime is fine.
 
 ### Custom Vue frontend over Open WebUI
 Open WebUI owns its own conversation storage. The backend cannot create threads programmatically, which breaks the wake-to-conversation flow. Building a basic chat UI (~2-3 days) gives full control over thread creation and the wake notification flow.
