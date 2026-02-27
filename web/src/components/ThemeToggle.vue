@@ -7,7 +7,7 @@ const { theme, toggle } = useTheme();
 <template>
   <button
     @click="toggle"
-    class="p-2 rounded-lg hover:bg-surface-hover transition-colors text-text-muted hover:text-text"
+    class="p-2.5 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
     :title="theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'"
   >
     <svg v-if="theme === 'dark'" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5">

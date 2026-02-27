@@ -3,7 +3,7 @@ import { useRoute } from 'vue-router';
 import ThemeToggle from './ThemeToggle.vue';
 import { useThreads } from '../composables/useThreads';
 
-defineEmits<{ 'new-chat': [] }>();
+const emit = defineEmits<{ 'new-chat': []; 'thread-select': [] }>();
 
 const route = useRoute();
 const { threads } = useThreads();
@@ -30,13 +30,13 @@ function formatDate(dateStr: string) {
 </script>
 
 <template>
-  <aside class="w-[280px] flex-shrink-0 bg-surface border-r border-border flex flex-col h-screen">
+  <aside class="w-[280px] flex-shrink-0 bg-card md:border-r border-border flex flex-col h-full">
     <div class="p-3 flex items-center justify-between border-b border-border">
       <ThemeToggle />
       <button
         @click="$emit('new-chat')"
-        class="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium
-               bg-accent text-white hover:bg-accent-hover transition-colors"
+        class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
+               bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -55,10 +55,11 @@ function formatDate(dateStr: string) {
           v-for="thread in threads"
           :key="thread.id"
           :to="`/${thread.id}`"
+          @click="emit('thread-select')"
           class="block mx-2 mb-0.5 px-3 py-2.5 rounded-lg text-sm transition-colors truncate"
           :class="isActive(thread.id)
-            ? 'bg-surface-hover text-text'
-            : 'text-text-muted hover:bg-surface-hover hover:text-text'"
+            ? 'bg-accent text-foreground'
+            : 'text-muted-foreground hover:bg-accent hover:text-foreground'"
         >
           <Transition
             mode="out-in"
@@ -69,11 +70,11 @@ function formatDate(dateStr: string) {
           >
             <div class="truncate" :key="threadTitle(thread)">{{ threadTitle(thread) }}</div>
           </Transition>
-          <div class="text-xs text-text-muted mt-0.5">{{ formatDate(thread.updated_at) }}</div>
+          <div class="text-xs text-muted-foreground mt-0.5">{{ formatDate(thread.updated_at) }}</div>
         </router-link>
       </TransitionGroup>
 
-      <div v-if="threads.length === 0" class="px-5 py-8 text-center text-text-muted text-sm">
+      <div v-if="threads.length === 0" class="px-5 py-8 text-center text-muted-foreground text-sm">
         No conversations yet
       </div>
     </nav>

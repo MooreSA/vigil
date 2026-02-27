@@ -14,7 +14,7 @@ const props = defineProps<{
     <div class="max-w-3xl mx-auto">
       <!-- User message -->
       <div v-if="message.role === 'user'" class="flex justify-end">
-        <div class="bg-user-bubble rounded-2xl rounded-br-md px-4 py-2.5 max-w-[85%]">
+        <div class="bg-secondary rounded-2xl rounded-br-md px-4 py-2.5 max-w-[85%]">
           <p class="whitespace-pre-wrap">{{ message.content }}</p>
         </div>
       </div>

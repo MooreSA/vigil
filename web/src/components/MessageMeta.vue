@@ -24,10 +24,10 @@ function formatModel(model: string) {
 </script>
 
 <template>
-  <div class="mt-1 text-xs text-text-muted">
+  <div class="mt-1 text-xs text-muted-foreground">
     <button
       @click="expanded = !expanded"
-      class="hover:text-text transition-colors flex items-center gap-1"
+      class="hover:text-foreground transition-colors flex items-center gap-1"
     >
       <svg
         class="w-3 h-3 transition-transform"
