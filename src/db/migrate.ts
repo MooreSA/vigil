@@ -4,6 +4,7 @@ import {createDb} from './client.js';
 import * as m0001 from './migrations/0001_initial.js';
 import * as m0002 from "./migrations/0002_threads_job_run_id.js"
 import * as m0003 from "./migrations/0003_job_skills.js"
+import * as m0004 from "./migrations/0004_nullable_job_schedule.js"
 
 async function main() {
     const connectionString = process.env.DATABASE_URL;
@@ -22,6 +23,7 @@ async function main() {
                     '0001_initial': m0001,
                     '0002_threads_job_run_id': m0002,
                     '0003_job_skills': m0003,
+                    '0004_nullable_job_schedule': m0004,
                 };
             },
         },
