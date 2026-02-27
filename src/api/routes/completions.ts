@@ -51,10 +51,12 @@ export async function completionsRoute(
     reply.raw.write(sseEvent('thread', { thread_id: threadId }));
 
     try {
-      for await (const chunk of agentService.runStream(threadId, message)) {
+      const { stream, usage } = await agentService.runStream(threadId, message);
+      for await (const chunk of stream) {
         reply.raw.write(sseEvent('delta', { content: chunk }));
       }
-      reply.raw.write(sseEvent('done', {}));
+      const tokenUsage = await usage;
+      reply.raw.write(sseEvent('done', tokenUsage ? { usage: tokenUsage } : {}));
     } catch (err) {
       app.log.error(err, 'Stream error');
       const msg = err instanceof Error ? err.message : 'Internal error';

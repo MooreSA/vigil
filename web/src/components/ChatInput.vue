@@ -6,12 +6,19 @@ defineProps<{ disabled?: boolean }>();
 
 const input = ref('');
 const textarea = ref<HTMLTextAreaElement | null>(null);
+const wrapper = ref<HTMLElement | null>(null);
 
 function adjustHeight() {
   const el = textarea.value;
-  if (!el) return;
+  const wrap = wrapper.value;
+  if (!el || !wrap) return;
+  // Pin the wrapper height so the flex layout doesn't shift
+  // while we measure the textarea's natural content height.
+  const pinned = wrap.offsetHeight;
+  wrap.style.minHeight = pinned + 'px';
   el.style.height = 'auto';
   el.style.height = Math.min(el.scrollHeight, 200) + 'px';
+  wrap.style.minHeight = '';
 }
 
 function handleKeydown(e: KeyboardEvent) {
@@ -31,7 +38,7 @@ function submit() {
 </script>
 
 <template>
-  <div class="border-t border-border bg-background p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4">
+  <div ref="wrapper" class="border-t border-border bg-background p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4">
     <div class="max-w-3xl mx-auto relative">
       <textarea
         ref="textarea"

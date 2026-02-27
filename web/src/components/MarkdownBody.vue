@@ -60,5 +60,5 @@ const rendered = computed(() => md.render(props.content));
 </script>
 
 <template>
-  <div class="markdown-body" v-html="rendered" />
+  <div class="markdown-body overflow-hidden" v-html="rendered" />
 </template>

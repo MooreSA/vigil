@@ -13,13 +13,16 @@ function mockThreadService(): ThreadService {
   } as unknown as ThreadService;
 }
 
-function mockAgentService(chunks: string[] = ['Hello', ' world']): AgentService {
+function mockAgentService(chunks: string[] = ['Hello', ' world'], usage = { input_tokens: 100, output_tokens: 50, total_tokens: 150 }): AgentService {
   return {
-    runStream: vi.fn().mockImplementation(async function* () {
-      for (const chunk of chunks) {
-        yield chunk;
-      }
-    }),
+    runStream: vi.fn().mockImplementation(async () => ({
+      stream: (async function* () {
+        for (const chunk of chunks) {
+          yield chunk;
+        }
+      })(),
+      usage: Promise.resolve(usage),
+    })),
   } as unknown as AgentService;
 }
 
@@ -83,7 +86,7 @@ describe('POST /v1/chat/completions', () => {
     });
     expect(events[events.length - 1]).toEqual({
       event: 'done',
-      data: JSON.stringify({}),
+      data: JSON.stringify({ usage: { input_tokens: 100, output_tokens: 50, total_tokens: 150 } }),
     });
   });
 
@@ -145,10 +148,13 @@ describe('POST /v1/chat/completions', () => {
 
   it('sends error event when stream throws', async () => {
     agentService = {
-      runStream: vi.fn().mockImplementation(async function* () {
-        yield 'partial';
-        throw new Error('LLM exploded');
-      }),
+      runStream: vi.fn().mockImplementation(async () => ({
+        stream: (async function* () {
+          yield 'partial';
+          throw new Error('LLM exploded');
+        })(),
+        usage: Promise.resolve(null),
+      })),
     } as unknown as ReturnType<typeof mockAgentService>;
     const app = await buildApp();
 

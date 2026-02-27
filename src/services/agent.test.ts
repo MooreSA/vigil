@@ -16,7 +16,7 @@ function mockThreadService(): ThreadService {
   } as unknown as ThreadService;
 }
 
-function fakeStreamResult(chunks: string[]) {
+function fakeStreamResult(chunks: string[], usage?: { inputTokens: number; outputTokens: number; totalTokens: number }) {
   let completed: () => void;
   const completedPromise = new Promise<void>((r) => { completed = r; });
 
@@ -31,6 +31,9 @@ function fakeStreamResult(chunks: string[]) {
       completed!();
     },
     completed: completedPromise,
+    state: {
+      usage: usage ?? { inputTokens: 100, outputTokens: 50, totalTokens: 150 },
+    },
   };
 }
 
@@ -61,9 +64,8 @@ describe('AgentService', () => {
     it('persists user message before calling SDK', async () => {
       runFn.mockResolvedValue(fakeStreamResult(['hi']) as any);
 
-      const gen = service.runStream('t1', 'hello');
-      await gen.next();
-      await gen.next(); // drain
+      const { stream } = await service.runStream('t1', 'hello');
+      for await (const _ of stream) { /* drain */ }
 
       expect(threadService.addMessage).toHaveBeenCalledWith({
         thread_id: 't1',
@@ -81,18 +83,19 @@ describe('AgentService', () => {
       runFn.mockResolvedValue(fakeStreamResult(['Hello', ', ', 'world!']) as any);
 
       const chunks: string[] = [];
-      for await (const chunk of service.runStream('t1', 'hi')) {
+      const { stream } = await service.runStream('t1', 'hi');
+      for await (const chunk of stream) {
         chunks.push(chunk);
       }
 
       expect(chunks).toEqual(['Hello', ', ', 'world!']);
     });
 
-    it('persists assembled assistant message after stream', async () => {
-      runFn.mockResolvedValue(fakeStreamResult(['Good ', 'morning']) as any);
+    it('persists assembled assistant message with usage after stream', async () => {
+      runFn.mockResolvedValue(fakeStreamResult(['Good ', 'morning'], { inputTokens: 200, outputTokens: 80, totalTokens: 280 }) as any);
 
-      // drain the generator
-      for await (const _ of service.runStream('t1', 'hi')) { /* noop */ }
+      const { stream } = await service.runStream('t1', 'hi');
+      for await (const _ of stream) { /* noop */ }
 
       const calls = vi.mocked(threadService.addMessage).mock.calls;
       const assistantCall = calls.find((c) => c[0].role === 'assistant');
@@ -101,8 +104,22 @@ describe('AgentService', () => {
         thread_id: 't1',
         role: 'assistant',
         model: 'anthropic/claude-sonnet-4',
-        content: { role: 'assistant', content: 'Good morning' },
+        content: {
+          role: 'assistant',
+          content: 'Good morning',
+          usage: { input_tokens: 200, output_tokens: 80, total_tokens: 280 },
+        },
       });
+    });
+
+    it('resolves usage promise after stream completes', async () => {
+      runFn.mockResolvedValue(fakeStreamResult(['hi'], { inputTokens: 10, outputTokens: 5, totalTokens: 15 }) as any);
+
+      const { stream, usage } = await service.runStream('t1', 'hello');
+      for await (const _ of stream) { /* drain */ }
+
+      const tokenUsage = await usage;
+      expect(tokenUsage).toEqual({ input_tokens: 10, output_tokens: 5, total_tokens: 15 });
     });
 
     it('loads thread history and passes to run', async () => {
@@ -112,7 +129,8 @@ describe('AgentService', () => {
       vi.mocked(threadService.getMessages).mockResolvedValue(history as any);
       runFn.mockResolvedValue(fakeStreamResult(['yo']) as any);
 
-      for await (const _ of service.runStream('t1', 'hi')) { /* noop */ }
+      const { stream } = await service.runStream('t1', 'hi');
+      for await (const _ of stream) { /* noop */ }
 
       expect(threadService.getMessages).toHaveBeenCalledWith('t1');
       expect(runFn).toHaveBeenCalledWith(
@@ -128,7 +146,8 @@ describe('AgentService', () => {
       const emitted: { threadId: string }[] = [];
       eventBus.on('response:complete', (data) => emitted.push(data));
 
-      for await (const _ of service.runStream('t1', 'hello')) { /* drain */ }
+      const { stream } = await service.runStream('t1', 'hello');
+      for await (const _ of stream) { /* drain */ }
 
       expect(emitted).toEqual([{ threadId: 't1' }]);
     });
@@ -145,11 +164,13 @@ describe('AgentService', () => {
           completed!();
         },
         completed: completedPromise,
+        state: { usage: { inputTokens: 0, outputTokens: 0, totalTokens: 0 } },
       };
       runFn.mockResolvedValue(result as any);
 
       const chunks: string[] = [];
-      for await (const chunk of service.runStream('t1', 'hi')) {
+      const { stream } = await service.runStream('t1', 'hi');
+      for await (const chunk of stream) {
         chunks.push(chunk);
       }
 

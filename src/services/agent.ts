@@ -27,6 +27,17 @@ interface AgentServiceDeps {
   run?: RunFn;
 }
 
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+}
+
+export interface StreamResult {
+  stream: AsyncIterable<string>;
+  usage: Promise<TokenUsage | null>;
+}
+
 export class AgentService {
   private model: OpenAIChatCompletionsModel;
   private modelName: string;
@@ -46,7 +57,7 @@ export class AgentService {
     this.run = deps.run ?? sdkRun;
   }
 
-  async *runStream(threadId: string, userMessage: string): AsyncGenerator<string> {
+  async runStream(threadId: string, userMessage: string): Promise<StreamResult> {
     await this.threadService.addMessage({
       thread_id: threadId,
       role: 'user',
@@ -68,27 +79,53 @@ export class AgentService {
     });
 
     let fullText = '';
+    let usageResolve: (v: TokenUsage | null) => void;
+    const usagePromise = new Promise<TokenUsage | null>((r) => { usageResolve = r; });
 
-    for await (const event of result) {
-      if (
-        event.type === 'raw_model_stream_event' &&
-        event.data.type === 'output_text_delta'
-      ) {
-        fullText += event.data.delta;
-        yield event.data.delta;
+    const self = this;
+    const stream = (async function* () {
+      for await (const event of result) {
+        if (
+          event.type === 'raw_model_stream_event' &&
+          event.data.type === 'output_text_delta'
+        ) {
+          fullText += event.data.delta;
+          yield event.data.delta;
+        }
       }
-    }
 
-    await result.completed;
+      await result.completed;
 
-    await this.threadService.addMessage({
-      thread_id: threadId,
-      role: 'assistant',
-      model: this.modelName,
-      content: { role: 'assistant', content: fullText },
-    });
+      let usage: TokenUsage | null = null;
+      try {
+        const u = result.state.usage;
+        if (u) {
+          usage = {
+            input_tokens: u.inputTokens,
+            output_tokens: u.outputTokens,
+            total_tokens: u.totalTokens,
+          };
+        }
+      } catch {
+        // Usage not available
+      }
 
-    this.eventBus.emit('response:complete', { threadId });
+      await self.threadService.addMessage({
+        thread_id: threadId,
+        role: 'assistant',
+        model: self.modelName,
+        content: {
+          role: 'assistant',
+          content: fullText,
+          ...(usage ? { usage } : {}),
+        },
+      });
+
+      self.eventBus.emit('response:complete', { threadId });
+      usageResolve!(usage);
+    })();
+
+    return { stream, usage: usagePromise };
   }
 }
 

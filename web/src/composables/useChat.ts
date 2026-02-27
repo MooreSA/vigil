@@ -1,18 +1,32 @@
 import { ref, type Ref } from 'vue';
 import { fetchThread, streamChat, type Message } from '../lib/api';
 
+export interface TokenUsage {
+  input_tokens: number;
+  output_tokens: number;
+  total_tokens: number;
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
   content: string;
   model: string | null;
   created_at: string;
+  usage?: TokenUsage;
 }
 
 function extractContent(msg: Message): string {
   const c = msg.content as Record<string, unknown>;
   if (typeof c.content === 'string') return c.content;
   return JSON.stringify(c);
+}
+
+function extractUsage(msg: Message): TokenUsage | undefined {
+  const c = msg.content as Record<string, unknown>;
+  const u = c.usage as TokenUsage | undefined;
+  if (u && typeof u.total_tokens === 'number') return u;
+  return undefined;
 }
 
 export function useChat() {
@@ -35,6 +49,7 @@ export function useChat() {
           content: extractContent(m),
           model: m.model,
           created_at: m.created_at,
+          usage: extractUsage(m),
         }));
     } finally {
       loadingHistory.value = false;
@@ -63,6 +78,7 @@ export function useChat() {
     const startTime = Date.now();
     let newThreadId: string | null = null;
     let model: string | null = null;
+    let usage: TokenUsage | undefined;
 
     try {
       for await (const event of streamChat(threadId.value, text)) {
@@ -74,8 +90,11 @@ export function useChat() {
           case 'delta':
             streamingContent.value += event.data.content as string;
             break;
-          case 'done':
+          case 'done': {
+            const u = event.data.usage as TokenUsage | undefined;
+            if (u && typeof u.total_tokens === 'number') usage = u;
             break;
+          }
           case 'error':
             streamingContent.value += `\n\n**Error:** ${event.data.message}`;
             break;
@@ -89,6 +108,7 @@ export function useChat() {
         content: streamingContent.value,
         model,
         created_at: new Date().toISOString(),
+        usage,
       };
       // Store timing in a way we can access it
       (assistantMsg as any)._elapsed = elapsed;

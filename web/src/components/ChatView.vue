@@ -62,11 +62,11 @@ async function handleSend(text: string) {
 </script>
 
 <template>
-  <div class="flex-1 flex flex-col min-h-0">
+  <div class="flex-1 flex flex-col min-h-0 min-w-0">
     <!-- Messages area -->
     <div
       ref="messagesContainer"
-      class="flex-1 overflow-y-auto"
+      class="flex-1 overflow-y-auto overscroll-contain"
     >
       <!-- Empty state -->
       <div
