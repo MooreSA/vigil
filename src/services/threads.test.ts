@@ -91,6 +91,18 @@ describe('ThreadService', () => {
     });
   });
 
+  describe('list', () => {
+    it('delegates to threadRepo.findAll', async () => {
+      const rows = [{ id: '2' }, { id: '1' }];
+      vi.mocked(threadRepo.findAll).mockResolvedValue(rows as any);
+
+      const result = await service.list();
+
+      expect(threadRepo.findAll).toHaveBeenCalled();
+      expect(result).toBe(rows);
+    });
+  });
+
   describe('getMessages', () => {
     it('delegates to messageRepo.findByThreadId', async () => {
       const rows = [{ id: '1' }, { id: '2' }];

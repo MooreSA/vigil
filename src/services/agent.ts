@@ -7,6 +7,7 @@ import {
 } from '@openai/agents';
 import type { OpenAIChatCompletionsModel, StreamedRunResult } from '@openai/agents';
 import type { AgentInputItem } from '@openai/agents';
+import type { EventBus } from '../events.js';
 import type { Logger } from '../logger.js';
 import type { ThreadService } from './threads.js';
 
@@ -19,6 +20,7 @@ export type RunFn = (
 interface AgentServiceDeps {
   model: OpenAIChatCompletionsModel;
   modelName: string;
+  eventBus: EventBus;
   threadService: ThreadService;
   logger: Logger;
   maxIterations: number;
@@ -28,6 +30,7 @@ interface AgentServiceDeps {
 export class AgentService {
   private model: OpenAIChatCompletionsModel;
   private modelName: string;
+  private eventBus: EventBus;
   private threadService: ThreadService;
   private logger: Logger;
   private maxIterations: number;
@@ -36,6 +39,7 @@ export class AgentService {
   constructor(deps: AgentServiceDeps) {
     this.model = deps.model;
     this.modelName = deps.modelName;
+    this.eventBus = deps.eventBus;
     this.threadService = deps.threadService;
     this.logger = deps.logger;
     this.maxIterations = deps.maxIterations;
@@ -83,6 +87,8 @@ export class AgentService {
       model: this.modelName,
       content: { role: 'assistant', content: fullText },
     });
+
+    this.eventBus.emit('response:complete', { threadId });
   }
 }
 

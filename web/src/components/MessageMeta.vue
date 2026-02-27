@@ -1,0 +1,49 @@
+<script setup lang="ts">
+import { ref } from 'vue';
+
+const props = defineProps<{
+  model: string | null;
+  createdAt: string;
+  elapsed?: string;
+}>();
+
+const expanded = ref(false);
+
+function formatTime(dateStr: string) {
+  return new Date(dateStr).toLocaleTimeString(undefined, {
+    hour: 'numeric',
+    minute: '2-digit',
+  });
+}
+
+function formatModel(model: string) {
+  // Strip provider prefix for cleaner display
+  const parts = model.split('/');
+  return parts[parts.length - 1];
+}
+</script>
+
+<template>
+  <div class="mt-1 text-xs text-text-muted">
+    <button
+      @click="expanded = !expanded"
+      class="hover:text-text transition-colors flex items-center gap-1"
+    >
+      <svg
+        class="w-3 h-3 transition-transform"
+        :class="expanded ? 'rotate-90' : ''"
+        fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
+      >
+        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+      </svg>
+      <span v-if="elapsed">{{ elapsed }}s</span>
+      <span v-if="elapsed && model" class="mx-0.5">&middot;</span>
+      <span v-if="model">{{ formatModel(model) }}</span>
+    </button>
+    <div v-if="expanded" class="mt-1 pl-4 space-y-0.5">
+      <div v-if="elapsed">Duration: {{ elapsed }}s</div>
+      <div v-if="model">Model: {{ model }}</div>
+      <div>Time: {{ formatTime(createdAt) }}</div>
+    </div>
+  </div>
+</template>

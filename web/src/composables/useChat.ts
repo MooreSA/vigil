@@ -1,0 +1,114 @@
+import { ref, type Ref } from 'vue';
+import { fetchThread, streamChat, type Message } from '../lib/api';
+
+export interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant' | 'system' | 'tool';
+  content: string;
+  model: string | null;
+  created_at: string;
+}
+
+function extractContent(msg: Message): string {
+  const c = msg.content as Record<string, unknown>;
+  if (typeof c.content === 'string') return c.content;
+  return JSON.stringify(c);
+}
+
+export function useChat() {
+  const messages: Ref<ChatMessage[]> = ref([]);
+  const isStreaming = ref(false);
+  const streamingContent = ref('');
+  const threadId: Ref<string | null> = ref(null);
+  const loadingHistory = ref(false);
+
+  async function loadThread(id: string) {
+    loadingHistory.value = true;
+    try {
+      const data = await fetchThread(id);
+      threadId.value = id;
+      messages.value = data.messages
+        .filter((m) => m.role !== 'system')
+        .map((m) => ({
+          id: m.id,
+          role: m.role,
+          content: extractContent(m),
+          model: m.model,
+          created_at: m.created_at,
+        }));
+    } finally {
+      loadingHistory.value = false;
+    }
+  }
+
+  function reset() {
+    messages.value = [];
+    threadId.value = null;
+    streamingContent.value = '';
+    isStreaming.value = false;
+  }
+
+  async function send(text: string): Promise<string | null> {
+    const userMsg: ChatMessage = {
+      id: `temp-${Date.now()}`,
+      role: 'user',
+      content: text,
+      model: null,
+      created_at: new Date().toISOString(),
+    };
+    messages.value.push(userMsg);
+
+    isStreaming.value = true;
+    streamingContent.value = '';
+    const startTime = Date.now();
+    let newThreadId: string | null = null;
+    let model: string | null = null;
+
+    try {
+      for await (const event of streamChat(threadId.value, text)) {
+        switch (event.event) {
+          case 'thread':
+            newThreadId = event.data.thread_id as string;
+            threadId.value = newThreadId;
+            break;
+          case 'delta':
+            streamingContent.value += event.data.content as string;
+            break;
+          case 'done':
+            break;
+          case 'error':
+            streamingContent.value += `\n\n**Error:** ${event.data.message}`;
+            break;
+        }
+      }
+
+      const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const assistantMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        role: 'assistant',
+        content: streamingContent.value,
+        model,
+        created_at: new Date().toISOString(),
+      };
+      // Store timing in a way we can access it
+      (assistantMsg as any)._elapsed = elapsed;
+      messages.value.push(assistantMsg);
+    } finally {
+      isStreaming.value = false;
+      streamingContent.value = '';
+    }
+
+    return newThreadId;
+  }
+
+  return {
+    messages,
+    isStreaming,
+    streamingContent,
+    threadId,
+    loadingHistory,
+    loadThread,
+    reset,
+    send,
+  };
+}

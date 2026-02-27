@@ -123,7 +123,7 @@ Each step is independently usable:
 
 1. **Data model and backend scaffolding** -- Postgres schema, Express/Fastify server, OpenAI-compatible endpoints ✓
 2. **Agent loop** -- Basic chat completions through OpenRouter via the Agents SDK, no tools yet ✓
-3. **Thread management** -- Create, list, continue conversations with isolated history
+3. **Thread management** -- Create, list, continue conversations with isolated history ✓
 4. **Minimal Vue frontend** -- Thread list, chat view, SSE streaming
 5. **Core memory** -- Embedding storage via OpenRouter, similarity recall via pgvector, `remember`/`recall` tools
 6. **Tools** -- Start with 1-2 useful ones (e.g., web search, shell command)

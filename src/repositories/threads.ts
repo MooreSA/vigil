@@ -38,6 +38,15 @@ export class ThreadRepository {
       .execute();
   }
 
+  async updateTitle(id: string, title: string) {
+    await this.db
+      .updateTable('threads')
+      .set({ title })
+      .where('id', '=', id)
+      .where('deleted_at', 'is', null)
+      .execute();
+  }
+
   async softDelete(id: string) {
     return this.db
       .updateTable('threads')

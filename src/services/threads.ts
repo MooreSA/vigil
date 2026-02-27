@@ -27,6 +27,14 @@ export class ThreadService {
     return this.messageRepo.create(input);
   }
 
+  async updateTitle(id: string, title: string) {
+    return this.threadRepo.updateTitle(id, title);
+  }
+
+  async list() {
+    return this.threadRepo.findAll();
+  }
+
   async getMessages(threadId: string) {
     return this.messageRepo.findByThreadId(threadId);
   }

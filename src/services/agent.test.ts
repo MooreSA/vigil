@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { EventEmitter } from 'node:events';
 import { AgentService } from './agent.js';
 import type { RunFn } from './agent.js';
 import type { ThreadService } from './threads.js';
@@ -11,6 +12,7 @@ function mockThreadService(): ThreadService {
     findById: vi.fn(),
     addMessage: vi.fn().mockResolvedValue({ id: '1' }),
     getMessages: vi.fn().mockResolvedValue([]),
+    updateTitle: vi.fn().mockResolvedValue(undefined),
   } as unknown as ThreadService;
 }
 
@@ -35,15 +37,18 @@ function fakeStreamResult(chunks: string[]) {
 const logger = pino({ level: 'silent' });
 
 let threadService: ReturnType<typeof mockThreadService>;
+let eventBus: EventEmitter;
 let runFn: ReturnType<typeof vi.fn<RunFn>>;
 let service: AgentService;
 
 beforeEach(() => {
   threadService = mockThreadService();
+  eventBus = new EventEmitter();
   runFn = vi.fn<RunFn>();
   service = new AgentService({
     model: {} as OpenAIChatCompletionsModel,
     modelName: 'anthropic/claude-sonnet-4',
+    eventBus,
     threadService,
     logger,
     maxIterations: 5,
@@ -115,6 +120,17 @@ describe('AgentService', () => {
         expect.arrayContaining([expect.objectContaining({ role: 'user' })]),
         expect.objectContaining({ stream: true, maxTurns: 5 }),
       );
+    });
+
+    it('emits response:complete after persisting assistant message', async () => {
+      runFn.mockResolvedValue(fakeStreamResult(['Hi']) as any);
+
+      const emitted: { threadId: string }[] = [];
+      eventBus.on('response:complete', (data) => emitted.push(data));
+
+      for await (const _ of service.runStream('t1', 'hello')) { /* drain */ }
+
+      expect(emitted).toEqual([{ threadId: 't1' }]);
     });
 
     it('skips non-text-delta events', async () => {
