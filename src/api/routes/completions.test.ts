@@ -18,7 +18,7 @@ function mockAgentService(chunks: string[] = ['Hello', ' world'], usage = { inpu
     runStream: vi.fn().mockImplementation(async () => ({
       stream: (async function* () {
         for (const chunk of chunks) {
-          yield chunk;
+          yield { type: 'delta', content: chunk };
         }
       })(),
       usage: Promise.resolve(usage),
@@ -150,7 +150,7 @@ describe('POST /v1/chat/completions', () => {
     agentService = {
       runStream: vi.fn().mockImplementation(async () => ({
         stream: (async function* () {
-          yield 'partial';
+          yield { type: 'delta', content: 'partial' };
           throw new Error('LLM exploded');
         })(),
         usage: Promise.resolve(null),

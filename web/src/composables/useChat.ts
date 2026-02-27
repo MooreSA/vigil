@@ -7,6 +7,13 @@ export interface TokenUsage {
   total_tokens: number;
 }
 
+export interface ToolCall {
+  name: string;
+  arguments: string;
+  output?: string;
+  status: 'running' | 'done';
+}
+
 export interface ChatMessage {
   id: string;
   role: 'user' | 'assistant' | 'system' | 'tool';
@@ -33,6 +40,7 @@ export function useChat() {
   const messages: Ref<ChatMessage[]> = ref([]);
   const isStreaming = ref(false);
   const streamingContent = ref('');
+  const activeToolCalls: Ref<ToolCall[]> = ref([]);
   const threadId: Ref<string | null> = ref(null);
   const loadingHistory = ref(false);
 
@@ -75,6 +83,7 @@ export function useChat() {
 
     isStreaming.value = true;
     streamingContent.value = '';
+    activeToolCalls.value = [];
     const startTime = Date.now();
     let newThreadId: string | null = null;
     let model: string | null = null;
@@ -93,6 +102,23 @@ export function useChat() {
           case 'done': {
             const u = event.data.usage as TokenUsage | undefined;
             if (u && typeof u.total_tokens === 'number') usage = u;
+            break;
+          }
+          case 'tool_call':
+            activeToolCalls.value.push({
+              name: event.data.name as string,
+              arguments: event.data.arguments as string,
+              status: 'running',
+            });
+            break;
+          case 'tool_result': {
+            const tc = activeToolCalls.value.find(
+              (t) => t.name === event.data.name && t.status === 'running',
+            );
+            if (tc) {
+              tc.output = event.data.output as string;
+              tc.status = 'done';
+            }
             break;
           }
           case 'error':
@@ -116,6 +142,7 @@ export function useChat() {
     } finally {
       isStreaming.value = false;
       streamingContent.value = '';
+      activeToolCalls.value = [];
     }
 
     return newThreadId;
@@ -125,6 +152,7 @@ export function useChat() {
     messages,
     isStreaming,
     streamingContent,
+    activeToolCalls,
     threadId,
     loadingHistory,
     loadThread,

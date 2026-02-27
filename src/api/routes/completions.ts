@@ -52,8 +52,14 @@ export async function completionsRoute(
 
     try {
       const { stream, usage } = await agentService.runStream(threadId, message);
-      for await (const chunk of stream) {
-        reply.raw.write(sseEvent('delta', { content: chunk }));
+      for await (const event of stream) {
+        if (event.type === 'delta') {
+          reply.raw.write(sseEvent('delta', { content: event.content }));
+        } else if (event.type === 'tool_call') {
+          reply.raw.write(sseEvent('tool_call', { name: event.name, arguments: event.arguments }));
+        } else if (event.type === 'tool_result') {
+          reply.raw.write(sseEvent('tool_result', { name: event.name, output: event.output }));
+        }
       }
       const tokenUsage = await usage;
       reply.raw.write(sseEvent('done', tokenUsage ? { usage: tokenUsage } : {}));

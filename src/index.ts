@@ -6,8 +6,12 @@ import { createDb } from './db/client.js';
 import { createLogger } from './logger.js';
 import { ThreadRepository } from './repositories/threads.js';
 import { MessageRepository } from './repositories/messages.js';
+import { MemoryRepository } from './repositories/memory.js';
 import { ThreadService } from './services/threads.js';
+import { EmbeddingService } from './services/embedding.js';
+import { MemoryService } from './services/memory.js';
 import { AgentService } from './services/agent.js';
+import { createTools } from './tools/index.js';
 import { createEventBus } from './events.js';
 import { registerThreadTitleHandler } from './handlers/thread-title.js';
 import { buildServer } from './api/server.js';
@@ -20,6 +24,7 @@ const logger = createLogger({ level: config.logLevel, pretty: config.prettyLogs 
 const db = createDb(config.databaseUrl);
 const threadRepo = new ThreadRepository(db);
 const messageRepo = new MessageRepository(db);
+const memoryRepo = new MemoryRepository(db);
 
 const threadService = new ThreadService({ threadRepo, messageRepo });
 
@@ -30,6 +35,19 @@ const openRouterClient = new OpenAI({
 // @ts-expect-error: openai ships dual CJS/ESM .d.ts with incompatible #private fields.
 // Runtime class is identical — pure TS dual-package-hazard artifact.
 const chatModel = new OpenAIChatCompletionsModel(openRouterClient, config.openRouterChatModel);
+
+const embeddingService = new EmbeddingService({
+  openai: openRouterClient,
+  model: config.openRouterEmbeddingModel,
+});
+
+const memoryService = new MemoryService({
+  memoryRepo,
+  embeddingService,
+  logger: logger.child({ service: 'memory' }),
+});
+
+const tools = createTools(memoryService, logger);
 
 const eventBus = createEventBus();
 
@@ -46,11 +64,13 @@ const agentService = new AgentService({
   modelName: config.openRouterChatModel,
   eventBus,
   threadService,
+  memoryService,
   logger: logger.child({ service: 'agent' }),
   maxIterations: config.agentMaxIterations,
+  tools,
 });
 
-const server = buildServer({ logger, db, agentService, threadService, eventBus });
+const server = buildServer({ logger, db, agentService, threadService, memoryService, eventBus });
 
 const port = config.port;
 

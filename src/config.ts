@@ -8,6 +8,7 @@ const envSchema = z.object({
   NODE_ENV: z.string().default('development'),
   OPENROUTER_API_KEY: z.string().min(1),
   OPENROUTER_CHAT_MODEL: z.string().default('anthropic/claude-sonnet-4'),
+  OPENROUTER_EMBEDDING_MODEL: z.string().default('openai/text-embedding-3-small'),
   AGENT_MAX_ITERATIONS: z.coerce.number().int().default(25),
 });
 
@@ -18,6 +19,7 @@ export type Config = {
   prettyLogs: boolean;
   openRouterApiKey: string;
   openRouterChatModel: string;
+  openRouterEmbeddingModel: string;
   agentMaxIterations: number;
 };
 
@@ -41,6 +43,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {
     prettyLogs: parsed.NODE_ENV !== 'production',
     openRouterApiKey: parsed.OPENROUTER_API_KEY,
     openRouterChatModel: parsed.OPENROUTER_CHAT_MODEL,
+    openRouterEmbeddingModel: parsed.OPENROUTER_EMBEDDING_MODEL,
     agentMaxIterations: parsed.AGENT_MAX_ITERATIONS,
   };
 }

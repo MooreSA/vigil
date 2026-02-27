@@ -10,7 +10,7 @@ const props = defineProps<{ threadId?: string }>();
 
 const route = useRoute();
 const router = useRouter();
-const { messages, isStreaming, streamingContent, loadThread, reset, send } = useChat();
+const { messages, isStreaming, streamingContent, activeToolCalls, loadThread, reset, send } = useChat();
 const { load: reloadThreads, addOrUpdate } = useThreads();
 const messagesContainer = ref<HTMLElement | null>(null);
 
@@ -37,10 +37,13 @@ watch(
   { immediate: true },
 );
 
-// Auto-scroll during streaming
+// Auto-scroll during streaming and tool calls
 watch(streamingContent, () => {
   scrollToBottom();
 });
+watch(activeToolCalls, () => {
+  scrollToBottom();
+}, { deep: true });
 
 // Auto-scroll when messages change
 watch(() => messages.value.length, () => {
@@ -88,6 +91,27 @@ async function handleSend(text: string) {
           :key="msg.id"
           :message="msg"
         />
+
+        <!-- Active tool calls -->
+        <div v-if="activeToolCalls.length > 0" class="py-2 px-4">
+          <div class="max-w-3xl mx-auto space-y-1.5">
+            <div
+              v-for="(tc, i) in activeToolCalls"
+              :key="i"
+              class="flex items-center gap-2 text-xs text-muted-foreground"
+            >
+              <svg v-if="tc.status === 'running'" class="w-3 h-3 animate-spin" viewBox="0 0 16 16" fill="none">
+                <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" opacity="0.3" />
+                <path d="M8 1.5a6.5 6.5 0 014.596 1.904" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              </svg>
+              <svg v-else class="w-3 h-3 text-green-500" viewBox="0 0 16 16" fill="currentColor">
+                <path fill-rule="evenodd" d="M8 15A7 7 0 108 1a7 7 0 000 14zm3.354-9.354a.5.5 0 00-.708-.708L7 8.586 5.354 6.94a.5.5 0 10-.708.708l2 2a.5.5 0 00.708 0l4-4z" />
+              </svg>
+              <span class="font-mono">{{ tc.name }}</span>
+              <span v-if="tc.status === 'running'" class="italic">running...</span>
+            </div>
+          </div>
+        </div>
 
         <!-- Streaming message -->
         <MessageBubble

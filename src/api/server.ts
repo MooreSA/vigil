@@ -8,10 +8,12 @@ import type { DB } from '../db/types.js';
 import type { Logger } from '../logger.js';
 import type { AgentService } from '../services/agent.js';
 import type { ThreadService } from '../services/threads.js';
+import type { MemoryService } from '../services/memory.js';
 import type { EventBus } from '../events.js';
 import { completionsRoute } from './routes/completions.js';
 import { threadsRoute } from './routes/threads.js';
 import { eventsRoute } from './routes/events.js';
+import { memoryRoute } from './routes/memory.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,11 +22,12 @@ interface ServerDeps {
   db: Kysely<DB>;
   agentService: AgentService;
   threadService: ThreadService;
+  memoryService: MemoryService;
   eventBus: EventBus;
 }
 
-export function buildServer({ logger, db, agentService, threadService, eventBus }: ServerDeps) {
-  const app = Fastify({ loggerInstance: logger });
+export function buildServer({ logger, db, agentService, threadService, memoryService, eventBus }: ServerDeps) {
+  const app = Fastify({ loggerInstance: logger, forceCloseConnections: true });
 
   app.get('/healthz', async (_req, reply) => {
     try {
@@ -39,6 +42,7 @@ export function buildServer({ logger, db, agentService, threadService, eventBus 
   app.register(completionsRoute, { prefix: '/v1', agentService, threadService });
   app.register(threadsRoute, { prefix: '/v1', threadService });
   app.register(eventsRoute, { prefix: '/v1', eventBus });
+  app.register(memoryRoute, { prefix: '/v1', memoryService });
 
   // Serve built Vue app if web/dist exists
   const webDistPath = path.join(__dirname, '../../web/dist');
