@@ -78,6 +78,7 @@ const jobService = new JobService({
 const tools = createTools({
   memoryService,
   jobService,
+  notificationService,
   skillRegistry,
   logger,
   googleMapsApiKey: config.googleMapsApiKey,
