@@ -17,6 +17,7 @@ import { JobService } from './services/jobs.js';
 import { NotificationService } from './services/notifications.js';
 import { SchedulerService } from './services/scheduler.js';
 import { createTools } from './tools/index.js';
+import { createSkillRegistry } from './skills/index.js';
 import { createEventBus } from './events.js';
 import { registerThreadTitleHandler } from './handlers/thread-title.js';
 import { buildServer } from './api/server.js';
@@ -54,15 +55,29 @@ const memoryService = new MemoryService({
   logger: logger.child({ service: 'memory' }),
 });
 
+const notificationService = new NotificationService({
+  url: config.ntfyUrl,
+  topic: config.ntfyTopic,
+  logger: logger.child({ service: 'notifications' }),
+});
+
+const skillRegistry = createSkillRegistry({
+  notificationService,
+  logger,
+  googleMapsApiKey: config.googleMapsApiKey,
+});
+
 const jobService = new JobService({
   jobRepo,
   jobRunRepo,
+  validSkillNames: new Set(skillRegistry.keys()),
   logger: logger.child({ service: 'jobs' }),
 });
 
 const tools = createTools({
   memoryService,
   jobService,
+  skillRegistry,
   logger,
   googleMapsApiKey: config.googleMapsApiKey,
 });
@@ -88,18 +103,13 @@ const agentService = new AgentService({
   tools,
 });
 
-const notificationService = new NotificationService({
-  url: config.ntfyUrl,
-  topic: config.ntfyTopic,
-  logger: logger.child({ service: 'notifications' }),
-});
-
 const schedulerService = new SchedulerService({
   jobRepo,
   jobRunRepo,
   agentService,
   threadService,
   notificationService,
+  skills: skillRegistry,
   logger: logger.child({ service: 'scheduler' }),
   appUrl: config.appUrl,
 });

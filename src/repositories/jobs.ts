@@ -4,18 +4,22 @@ import type { DB } from '../db/types.js';
 export interface CreateJobInput {
   name: string;
   schedule: string;
-  prompt: string;
+  prompt?: string | null;
   enabled?: boolean;
   max_retries?: number;
+  skill_name?: string | null;
+  skill_config?: Record<string, unknown> | null;
   next_run_at: Date | string;
 }
 
 export interface UpdateJobInput {
   name?: string;
   schedule?: string;
-  prompt?: string;
+  prompt?: string | null;
   enabled?: boolean;
   max_retries?: number;
+  skill_name?: string | null;
+  skill_config?: Record<string, unknown> | null;
   next_run_at?: Date | string;
   last_run_at?: Date | string;
 }
@@ -29,9 +33,11 @@ export class JobRepository {
       .values({
         name: input.name,
         schedule: input.schedule,
-        prompt: input.prompt,
+        prompt: input.prompt ?? null,
         enabled: input.enabled ?? true,
         max_retries: input.max_retries ?? 3,
+        skill_name: input.skill_name ?? null,
+        skill_config: input.skill_config ? JSON.stringify(input.skill_config) : null,
         next_run_at: input.next_run_at,
       })
       .returningAll()
@@ -57,9 +63,15 @@ export class JobRepository {
   }
 
   async update(id: string, fields: UpdateJobInput) {
+    const { skill_config, ...rest } = fields;
+    const setFields: Record<string, unknown> = { ...rest };
+    if (skill_config !== undefined) {
+      setFields.skill_config = skill_config ? JSON.stringify(skill_config) : null;
+    }
+
     return this.db
       .updateTable('jobs')
-      .set(fields)
+      .set(setFields)
       .where('id', '=', id)
       .where('deleted_at', 'is', null)
       .returningAll()

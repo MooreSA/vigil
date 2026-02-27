@@ -61,7 +61,7 @@ let service: JobService;
 beforeEach(() => {
   jobRepo = mockJobRepo();
   jobRunRepo = mockJobRunRepo();
-  service = new JobService({ jobRepo, jobRunRepo, logger });
+  service = new JobService({ jobRepo, jobRunRepo, validSkillNames: new Set(['departure-check']), logger });
 });
 
 describe('JobService', () => {

@@ -5,9 +5,14 @@ export class JobRunRepository {
   constructor(private db: Kysely<DB>) {}
 
   async createIdempotent(jobId: string, scheduledFor: Date | string): Promise<boolean> {
+    const ts = scheduledFor instanceof Date ? scheduledFor.toISOString() : scheduledFor;
     const result = await sql`
       INSERT INTO job_runs (job_id, scheduled_for)
-      VALUES (${jobId}, ${scheduledFor instanceof Date ? scheduledFor.toISOString() : scheduledFor})
+      SELECT ${jobId}, ${ts}::timestamptz
+      WHERE NOT EXISTS (
+        SELECT 1 FROM job_runs
+        WHERE job_id = ${jobId} AND status = 'running'
+      )
       ON CONFLICT (job_id, scheduled_for) DO NOTHING
     `.execute(this.db);
     return (result.numAffectedRows ?? 0n) > 0n;
@@ -45,7 +50,7 @@ export class JobRunRepository {
     `.execute(this.db);
   }
 
-  async complete(id: string, threadId: string) {
+  async complete(id: string, threadId: string | null) {
     await sql`
       UPDATE job_runs
       SET status = 'completed',

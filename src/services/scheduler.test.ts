@@ -6,6 +6,7 @@ import type { JobRunRepository } from '../repositories/job-runs.js';
 import type { AgentService, StreamResult } from './agent.js';
 import type { ThreadService } from './threads.js';
 import type { NotificationService } from './notifications.js';
+import type { Skill, SkillRegistry } from '../skills/types.js';
 
 const logger = pino({ level: 'silent' });
 
@@ -85,6 +86,7 @@ beforeEach(() => {
     agentService,
     threadService,
     notificationService,
+    skills: new Map(),
     logger,
     appUrl: 'https://app.example.com',
   });
@@ -106,6 +108,8 @@ describe('SchedulerService', () => {
         prompt: 'Hello',
         enabled: true,
         max_retries: 3,
+        skill_name: null,
+        skill_config: null,
         next_run_at: new Date('2026-02-27T08:00:00Z'),
         last_run_at: null,
         deleted_at: null,
@@ -130,6 +134,8 @@ describe('SchedulerService', () => {
         prompt: 'Hello',
         enabled: true,
         max_retries: 3,
+        skill_name: null,
+        skill_config: null,
         next_run_at: new Date('2020-01-01T00:00:00Z'),
         last_run_at: null,
         deleted_at: null,
@@ -165,6 +171,8 @@ describe('SchedulerService', () => {
         prompt: 'Do stuff',
         enabled: true,
         max_retries: 3,
+        skill_name: null,
+        skill_config: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,
@@ -203,6 +211,8 @@ describe('SchedulerService', () => {
         prompt: 'Do stuff',
         enabled: true,
         max_retries: 3,
+        skill_name: null,
+        skill_config: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,
@@ -239,6 +249,8 @@ describe('SchedulerService', () => {
         prompt: 'Do stuff',
         enabled: true,
         max_retries: 3,
+        skill_name: null,
+        skill_config: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,
@@ -266,6 +278,145 @@ describe('SchedulerService', () => {
       await scheduler.tick();
 
       expect(jobRunRepo.fail).toHaveBeenCalledWith('10', 'Job not found');
+      expect(agentService.runStream).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('skill dispatch', () => {
+    function makeSkillJob(skillResult: { success: boolean; message: string; disableJob?: boolean }) {
+      const claimed = {
+        id: '20',
+        job_id: '2',
+        scheduled_for: new Date(),
+        status: 'running',
+        retry_count: 0,
+      };
+
+      const mockSkill: Skill = {
+        name: 'test-skill',
+        description: 'A test skill',
+        configSchema: {} as any,
+        execute: vi.fn().mockResolvedValue(skillResult),
+      };
+
+      const skills: SkillRegistry = new Map([['test-skill', mockSkill]]);
+
+      const skillScheduler = new SchedulerService({
+        jobRepo,
+        jobRunRepo,
+        agentService,
+        threadService,
+        notificationService,
+        skills,
+        logger,
+        appUrl: 'https://app.example.com',
+      });
+
+      vi.mocked(jobRunRepo.claimPending).mockResolvedValue(claimed);
+      vi.mocked(jobRepo.findById).mockResolvedValue({
+        id: '2',
+        name: 'Skill Job',
+        schedule: '*/5 * * * *',
+        prompt: null,
+        enabled: true,
+        max_retries: 3,
+        skill_name: 'test-skill',
+        skill_config: { version: 1, foo: 'bar' },
+        next_run_at: new Date(),
+        last_run_at: null,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      return { skillScheduler, mockSkill, claimed };
+    }
+
+    it('executes skill and completes with null threadId', async () => {
+      const { skillScheduler, mockSkill } = makeSkillJob({
+        success: true,
+        message: 'Not yet',
+      });
+
+      await skillScheduler.tick();
+
+      expect(mockSkill.execute).toHaveBeenCalledWith(
+        expect.objectContaining({
+          job: expect.objectContaining({ id: '2', name: 'Skill Job' }),
+        }),
+      );
+      expect(jobRunRepo.complete).toHaveBeenCalledWith('20', null);
+      expect(agentService.runStream).not.toHaveBeenCalled();
+      expect(threadService.create).not.toHaveBeenCalled();
+      expect(notificationService.notify).not.toHaveBeenCalled();
+    });
+
+    it('disables job when skill returns disableJob: true', async () => {
+      const { skillScheduler } = makeSkillJob({
+        success: true,
+        message: 'Sent notification',
+        disableJob: true,
+      });
+
+      await skillScheduler.tick();
+
+      expect(jobRepo.update).toHaveBeenCalledWith('2', { enabled: false });
+      expect(jobRunRepo.complete).toHaveBeenCalledWith('20', null);
+    });
+
+    it('does not disable job when disableJob is absent', async () => {
+      const { skillScheduler } = makeSkillJob({
+        success: true,
+        message: 'Not yet',
+      });
+
+      await skillScheduler.tick();
+
+      // update called for last_run_at but not for enabled: false
+      const updateCalls = vi.mocked(jobRepo.update).mock.calls;
+      const disableCall = updateCalls.find(([, fields]) => 'enabled' in fields);
+      expect(disableCall).toBeUndefined();
+    });
+
+    it('fails run when skill returns success: false', async () => {
+      const { skillScheduler } = makeSkillJob({
+        success: false,
+        message: 'Config invalid',
+      });
+
+      await skillScheduler.tick();
+
+      expect(jobRunRepo.fail).toHaveBeenCalledWith('20', 'Config invalid');
+      expect(jobRunRepo.complete).not.toHaveBeenCalled();
+    });
+
+    it('fails run when skill_name is not in registry', async () => {
+      vi.mocked(jobRunRepo.claimPending).mockResolvedValue({
+        id: '30',
+        job_id: '3',
+        scheduled_for: new Date(),
+        status: 'running',
+        retry_count: 0,
+      });
+      vi.mocked(jobRepo.findById).mockResolvedValue({
+        id: '3',
+        name: 'Unknown Skill Job',
+        schedule: '*/5 * * * *',
+        prompt: null,
+        enabled: true,
+        max_retries: 3,
+        skill_name: 'nonexistent',
+        skill_config: {},
+        next_run_at: new Date(),
+        last_run_at: null,
+        deleted_at: null,
+        created_at: new Date(),
+        updated_at: new Date(),
+      });
+
+      await scheduler.tick();
+
+      expect(jobRunRepo.fail).toHaveBeenCalledWith('30', 'Unknown skill: nonexistent');
       expect(agentService.runStream).not.toHaveBeenCalled();
     });
   });

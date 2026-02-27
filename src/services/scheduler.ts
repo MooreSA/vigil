@@ -74,7 +74,10 @@ export class SchedulerService {
       // 2. Find due jobs and create runs
       const dueJobs = await this.jobRepo.findDue();
       for (const job of dueJobs) {
-        await this.jobRunRepo.createIdempotent(job.id, job.next_run_at);
+        const created = await this.jobRunRepo.createIdempotent(job.id, job.next_run_at);
+        if (!created) {
+          this.logger.info({ jobId: job.id }, 'Skipped run creation — job already has a running instance');
+        }
 
         // Advance next_run_at
         const nextFireTime = this.computeNextRun(job.schedule);

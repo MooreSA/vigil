@@ -35,9 +35,11 @@ export interface JobsTable {
   id: Generated<string>;
   name: string;
   schedule: string;
-  prompt: string;
+  prompt: string | null;
   enabled: Generated<boolean>;
   max_retries: Generated<number>;
+  skill_name: string | null;
+  skill_config: JSONColumnType<Record<string, unknown>> | null;
   next_run_at: ColumnType<Date, Date | string, Date | string>;
   last_run_at: ColumnType<Date | null, Date | string | null, Date | string | null>;
   deleted_at: ColumnType<Date | null, Date | string | null, Date | string | null>;
