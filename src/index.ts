@@ -8,6 +8,8 @@ import { ThreadRepository } from './repositories/threads.js';
 import { MessageRepository } from './repositories/messages.js';
 import { ThreadService } from './services/threads.js';
 import { AgentService } from './services/agent.js';
+import { createEventBus } from './events.js';
+import { registerThreadTitleHandler } from './handlers/thread-title.js';
 import { buildServer } from './api/server.js';
 
 setTracingDisabled(true);
@@ -29,15 +31,26 @@ const openRouterClient = new OpenAI({
 // Runtime class is identical — pure TS dual-package-hazard artifact.
 const chatModel = new OpenAIChatCompletionsModel(openRouterClient, config.openRouterChatModel);
 
+const eventBus = createEventBus();
+
+registerThreadTitleHandler({
+  eventBus,
+  openai: openRouterClient,
+  modelName: config.openRouterChatModel,
+  threadService,
+  logger: logger.child({ handler: 'thread-title' }),
+});
+
 const agentService = new AgentService({
   model: chatModel,
   modelName: config.openRouterChatModel,
+  eventBus,
   threadService,
   logger: logger.child({ service: 'agent' }),
   maxIterations: config.agentMaxIterations,
 });
 
-const server = buildServer({ logger, db, agentService, threadService });
+const server = buildServer({ logger, db, agentService, threadService, eventBus });
 
 const port = config.port;
 
