@@ -38,11 +38,12 @@ export interface TokenUsage {
 
 export type StreamEvent =
   | { type: 'delta'; content: string }
-  | { type: 'tool_call'; name: string; arguments: string }
-  | { type: 'tool_result'; name: string; output: string };
+  | { type: 'tool_call'; callId: string; name: string; arguments: string }
+  | { type: 'tool_result'; callId: string; name: string; output: string };
 
 export interface StreamResult {
   stream: AsyncIterable<StreamEvent>;
+  model: string;
   usage: Promise<TokenUsage | null>;
 }
 
@@ -118,6 +119,8 @@ export class AgentService {
 
     const self = this;
     const stream = (async function* (): AsyncGenerator<StreamEvent> {
+      const callIdToName = new Map<string, string>();
+
       for await (const event of result) {
         if (
           event.type === 'raw_model_stream_event' &&
@@ -128,15 +131,18 @@ export class AgentService {
         } else if (event.type === 'run_item_stream_event') {
           const item = event.item as { type?: string; rawItem?: Record<string, unknown> };
           if (item.type === 'tool_call_item' && item.rawItem) {
+            const callId = (item.rawItem.callId as string) ?? '';
             const toolName = (item.rawItem.name as string) ?? '';
             const toolArgs = (item.rawItem.arguments as string) ?? '';
-            self.logger.info({ tool: toolName, arguments: toolArgs, threadId }, 'Tool call started');
-            yield { type: 'tool_call', name: toolName, arguments: toolArgs };
+            callIdToName.set(callId, toolName);
+            self.logger.info({ tool: toolName, callId, threadId }, 'Tool call started');
+            yield { type: 'tool_call', callId, name: toolName, arguments: toolArgs };
           } else if (item.type === 'tool_call_output_item' && item.rawItem) {
-            const toolName = (item.rawItem.name as string) ?? '';
+            const callId = (item.rawItem.callId as string) ?? '';
+            const toolName = callIdToName.get(callId) ?? '';
             const toolOutput = (item.rawItem.output as string) ?? '';
-            self.logger.info({ tool: toolName, outputLength: toolOutput.length, threadId }, 'Tool call completed');
-            yield { type: 'tool_result', name: toolName, output: toolOutput };
+            self.logger.info({ tool: toolName, callId, threadId }, 'Tool call completed');
+            yield { type: 'tool_result', callId, name: toolName, output: toolOutput };
           }
         }
       }
@@ -172,7 +178,7 @@ export class AgentService {
       usageResolve!(usage);
     })();
 
-    return { stream, usage: usagePromise };
+    return { stream, model: this.modelName, usage: usagePromise };
   }
 
   private async assembleSystemPrompt(threadId: string, userMessage: string): Promise<void> {

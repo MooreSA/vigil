@@ -8,6 +8,7 @@ export interface TokenUsage {
 }
 
 export interface ToolCall {
+  callId: string;
   name: string;
   arguments: string;
   output?: string;
@@ -21,6 +22,7 @@ export interface ChatMessage {
   model: string | null;
   created_at: string;
   usage?: TokenUsage;
+  toolCalls?: ToolCall[];
 }
 
 function extractContent(msg: Message): string {
@@ -100,12 +102,14 @@ export function useChat() {
             streamingContent.value += event.data.content as string;
             break;
           case 'done': {
+            model = (event.data.model as string) ?? null;
             const u = event.data.usage as TokenUsage | undefined;
             if (u && typeof u.total_tokens === 'number') usage = u;
             break;
           }
           case 'tool_call':
             activeToolCalls.value.push({
+              callId: event.data.callId as string,
               name: event.data.name as string,
               arguments: event.data.arguments as string,
               status: 'running',
@@ -113,7 +117,7 @@ export function useChat() {
             break;
           case 'tool_result': {
             const tc = activeToolCalls.value.find(
-              (t) => t.name === event.data.name && t.status === 'running',
+              (t) => t.callId === event.data.callId,
             );
             if (tc) {
               tc.output = event.data.output as string;
@@ -128,6 +132,9 @@ export function useChat() {
       }
 
       const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+      const completedTools = activeToolCalls.value.length > 0
+        ? activeToolCalls.value.map((t) => ({ ...t, status: 'done' as const }))
+        : undefined;
       const assistantMsg: ChatMessage = {
         id: `msg-${Date.now()}`,
         role: 'assistant',
@@ -135,6 +142,7 @@ export function useChat() {
         model,
         created_at: new Date().toISOString(),
         usage,
+        toolCalls: completedTools,
       };
       // Store timing in a way we can access it
       (assistantMsg as any)._elapsed = elapsed;

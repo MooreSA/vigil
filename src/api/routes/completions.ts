@@ -51,18 +51,18 @@ export async function completionsRoute(
     reply.raw.write(sseEvent('thread', { thread_id: threadId }));
 
     try {
-      const { stream, usage } = await agentService.runStream(threadId, message);
+      const { stream, model, usage } = await agentService.runStream(threadId, message);
       for await (const event of stream) {
         if (event.type === 'delta') {
           reply.raw.write(sseEvent('delta', { content: event.content }));
         } else if (event.type === 'tool_call') {
-          reply.raw.write(sseEvent('tool_call', { name: event.name, arguments: event.arguments }));
+          reply.raw.write(sseEvent('tool_call', { callId: event.callId, name: event.name, arguments: event.arguments }));
         } else if (event.type === 'tool_result') {
-          reply.raw.write(sseEvent('tool_result', { name: event.name, output: event.output }));
+          reply.raw.write(sseEvent('tool_result', { callId: event.callId, name: event.name, output: event.output }));
         }
       }
       const tokenUsage = await usage;
-      reply.raw.write(sseEvent('done', tokenUsage ? { usage: tokenUsage } : {}));
+      reply.raw.write(sseEvent('done', { model, ...(tokenUsage ? { usage: tokenUsage } : {}) }));
     } catch (err) {
       app.log.error(err, 'Stream error');
       const msg = err instanceof Error ? err.message : 'Internal error';
