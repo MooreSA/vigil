@@ -71,7 +71,6 @@ beforeEach(() => {
   notificationService = mockNotificationService();
   skill = new DepartureCheckSkill({
     notificationService,
-    logger,
     googleMapsApiKey: 'test-key',
   });
 });

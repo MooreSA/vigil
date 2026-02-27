@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import type { Logger } from '../logger.js';
 import type { NotificationService } from '../services/notifications.js';
 import { fetchDirections } from '../services/directions.js';
 import type { Skill, SkillContext, SkillResult } from './types.js';
@@ -20,7 +19,6 @@ type DepartureCheckConfig = z.infer<typeof DepartureCheckConfigV1>;
 
 interface DepartureCheckDeps {
   notificationService: NotificationService;
-  logger: Logger;
   googleMapsApiKey: string;
 }
 
@@ -38,12 +36,10 @@ export class DepartureCheckSkill implements Skill {
   configSchema = DepartureCheckConfigV1;
 
   private notificationService: NotificationService;
-  private logger: Logger;
   private googleMapsApiKey: string;
 
   constructor(deps: DepartureCheckDeps) {
     this.notificationService = deps.notificationService;
-    this.logger = deps.logger;
     this.googleMapsApiKey = deps.googleMapsApiKey;
   }
 
@@ -55,6 +51,11 @@ export class DepartureCheckSkill implements Skill {
 
     const config: DepartureCheckConfig = parsed.data;
     const pollMs = config.pollIntervalMinutes * 60 * 1000;
+
+    context.logger.info(
+      { jobId: context.job.id, origin: config.origin, destination: config.destination, arrivalTime: config.arrivalTime, pollIntervalMinutes: config.pollIntervalMinutes },
+      'Starting departure check polling',
+    );
 
     while (!context.signal.aborted) {
       const now = new Date();
@@ -96,6 +97,7 @@ export class DepartureCheckSkill implements Skill {
             body,
             tag: config.notificationTag,
           });
+          context.logger.info({ jobId: context.job.id, durationMin, routeSummary: result.routeSummary }, 'Departure notification sent');
           return {
             success: true,
             message: `Notification sent — leave by ${leaveBy.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`,
@@ -115,6 +117,7 @@ export class DepartureCheckSkill implements Skill {
       await abortableSleep(pollMs, context.signal);
     }
 
+    context.logger.info({ jobId: context.job.id }, 'Departure check aborted');
     return { success: true, message: 'Aborted' };
   }
 }
