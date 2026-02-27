@@ -13,7 +13,7 @@ const db = createDb(config.databaseUrl);
 const threadRepo = new ThreadRepository(db);
 const messageRepo = new MessageRepository(db);
 
-const server = buildServer(logger);
+const server = buildServer({ logger, db });
 
 const port = config.port;
 

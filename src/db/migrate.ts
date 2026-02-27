@@ -1,11 +1,7 @@
 import 'dotenv/config';
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { FileMigrationProvider, Migrator } from 'kysely';
-import { promises as fs } from 'node:fs';
+import { Migrator } from 'kysely';
 import { createDb } from './client.js';
-
-const __dirname = path.dirname(fileURLToPath(import.meta.url));
+import * as m0001 from './migrations/0001_initial.js';
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -18,11 +14,11 @@ async function main() {
 
   const migrator = new Migrator({
     db,
-    provider: new FileMigrationProvider({
-      fs,
-      path,
-      migrationFolder: path.join(__dirname, 'migrations'),
-    }),
+    provider: {
+      async getMigrations() {
+        return { '0001_initial': m0001 };
+      },
+    },
   });
 
   const { error, results } = await migrator.migrateToLatest();
