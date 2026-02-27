@@ -46,7 +46,11 @@ function formatDate(dateStr: string) {
     </div>
 
     <nav class="flex-1 overflow-y-auto py-2">
-      <TransitionGroup name="thread-list">
+      <TransitionGroup
+        enter-active-class="transition-all duration-300 ease-out"
+        enter-from-class="opacity-0 -translate-y-2"
+        move-class="transition-transform duration-300 ease-out"
+      >
         <router-link
           v-for="thread in threads"
           :key="thread.id"
@@ -56,8 +60,14 @@ function formatDate(dateStr: string) {
             ? 'bg-surface-hover text-text'
             : 'text-text-muted hover:bg-surface-hover hover:text-text'"
         >
-          <Transition name="title-fade" mode="out-in">
-            <div class="truncate thread-title" :key="threadTitle(thread)">{{ threadTitle(thread) }}</div>
+          <Transition
+            mode="out-in"
+            enter-active-class="transition-opacity duration-200 ease-out"
+            leave-active-class="transition-opacity duration-150 ease-in"
+            enter-from-class="opacity-0"
+            leave-to-class="opacity-0"
+          >
+            <div class="truncate" :key="threadTitle(thread)">{{ threadTitle(thread) }}</div>
           </Transition>
           <div class="text-xs text-text-muted mt-0.5">{{ formatDate(thread.updated_at) }}</div>
         </router-link>
