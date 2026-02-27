@@ -18,8 +18,8 @@ describe('useThreads', () => {
   describe('load', () => {
     it('fetches and stores threads', async () => {
       const data = [
-        { id: '1', title: 'Thread 1', source: 'web', created_at: '', updated_at: '' },
-        { id: '2', title: 'Thread 2', source: 'web', created_at: '', updated_at: '' },
+        { id: '1', title: 'Thread 1', source: 'web', job_run_id: null, created_at: '', updated_at: ''},
+        { id: '2', title: 'Thread 2', source: 'web', job_run_id: null, created_at: '', updated_at: ''},
       ];
       vi.mocked(fetchThreads).mockResolvedValue(data);
 
@@ -47,10 +47,10 @@ describe('useThreads', () => {
     it('prepends a new thread', () => {
       const { threads, addOrUpdate } = useThreads();
       threads.value = [
-        { id: '1', title: 'Existing', source: 'web', created_at: '', updated_at: '' },
+        { id: '1', title: 'Existing', source: 'web', job_run_id: null, created_at: '', updated_at: ''},
       ];
 
-      addOrUpdate({ id: '2', title: 'New', source: 'web', created_at: '', updated_at: '' });
+      addOrUpdate({ id: '2', title: 'New', source: 'web', job_run_id: null, created_at: '', updated_at: ''});
 
       expect(threads.value).toHaveLength(2);
       expect(threads.value[0].id).toBe('2');
@@ -59,10 +59,10 @@ describe('useThreads', () => {
     it('updates an existing thread in place', () => {
       const { threads, addOrUpdate } = useThreads();
       threads.value = [
-        { id: '1', title: 'Old Title', source: 'web', created_at: '', updated_at: '' },
+        { id: '1', title: 'Old Title', source: 'web', job_run_id: null, created_at: '', updated_at: ''},
       ];
 
-      addOrUpdate({ id: '1', title: 'New Title', source: 'web', created_at: '', updated_at: '' });
+      addOrUpdate({ id: '1', title: 'New Title', source: 'web', job_run_id: null, created_at: '', updated_at: ''});
 
       expect(threads.value).toHaveLength(1);
       expect(threads.value[0].title).toBe('New Title');

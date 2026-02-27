@@ -10,7 +10,7 @@ const props = defineProps<{ threadId?: string }>();
 
 const route = useRoute();
 const router = useRouter();
-const { messages, isStreaming, streamingContent, activeToolCalls, loadThread, reset, send } = useChat();
+const { messages, isStreaming, streamingContent, activeToolCalls, threadSource, loadThread, reset, send } = useChat();
 const { load: reloadThreads, addOrUpdate } = useThreads();
 const messagesContainer = ref<HTMLElement | null>(null);
 
@@ -87,9 +87,10 @@ async function handleSend(text: string) {
       <!-- Message list -->
       <div class="py-4">
         <MessageBubble
-          v-for="msg in messages"
+          v-for="(msg, idx) in messages"
           :key="msg.id"
           :message="msg"
+          :is-wake-prompt="threadSource === 'wake' && idx === 0 && msg.role === 'user'"
         />
 
         <!-- Active tool calls -->

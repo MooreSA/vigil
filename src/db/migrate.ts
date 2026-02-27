@@ -2,6 +2,7 @@ import 'dotenv/config';
 import { Migrator } from 'kysely';
 import { createDb } from './client.js';
 import * as m0001 from './migrations/0001_initial.js';
+import * as m0002 from "./migrations/0002_threads_job_run_id.js"
 
 async function main() {
   const connectionString = process.env.DATABASE_URL;
@@ -16,7 +17,7 @@ async function main() {
     db,
     provider: {
       async getMigrations() {
-        return { '0001_initial': m0001 };
+        return { '0001_initial': m0001, '0002_threads_job_run_id': m0002 };
       },
     },
   });

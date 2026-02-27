@@ -4,6 +4,7 @@ import type { DB } from '../db/types.js';
 export interface CreateThreadInput {
   title?: string | null;
   source?: 'user' | 'wake';
+  job_run_id?: string | null;
 }
 
 export class ThreadRepository {
@@ -15,6 +16,7 @@ export class ThreadRepository {
       .values({
         title: input.title ?? null,
         source: input.source ?? 'user',
+        job_run_id: input.job_run_id ?? null,
       })
       .returningAll()
       .executeTakeFirstOrThrow();

@@ -54,8 +54,15 @@ const memoryService = new MemoryService({
   logger: logger.child({ service: 'memory' }),
 });
 
+const jobService = new JobService({
+  jobRepo,
+  jobRunRepo,
+  logger: logger.child({ service: 'jobs' }),
+});
+
 const tools = createTools({
   memoryService,
+  jobService,
   logger,
   googleMapsApiKey: config.googleMapsApiKey,
 });
@@ -85,12 +92,6 @@ const notificationService = new NotificationService({
   url: config.ntfyUrl,
   topic: config.ntfyTopic,
   logger: logger.child({ service: 'notifications' }),
-});
-
-const jobService = new JobService({
-  jobRepo,
-  jobRunRepo,
-  logger: logger.child({ service: 'jobs' }),
 });
 
 const schedulerService = new SchedulerService({

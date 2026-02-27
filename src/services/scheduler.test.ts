@@ -175,7 +175,7 @@ describe('SchedulerService', () => {
 
       await scheduler.tick();
 
-      expect(threadService.create).toHaveBeenCalledWith({ source: 'wake' });
+      expect(threadService.create).toHaveBeenCalledWith({ source: 'wake', job_run_id: '10' });
       expect(agentService.runStream).toHaveBeenCalledWith('thread-1', 'Do stuff');
       expect(jobRunRepo.complete).toHaveBeenCalledWith('10', 'thread-1');
       expect(jobRepo.update).toHaveBeenCalledWith('1', { last_run_at: expect.any(Date) });

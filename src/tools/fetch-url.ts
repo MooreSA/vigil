@@ -48,7 +48,7 @@ export function createFetchUrlTool(logger: Logger) {
     description:
       'Fetch the content of a web page as Markdown. Uses Mozilla Readability to extract the main article content, stripping navigation, ads, and other clutter. Preserves links, headings, and structure. Useful for reading articles, documentation, or any public web page.',
     parameters: z.object({
-      url: z.string().url().describe('The URL to fetch.'),
+      url: z.url().describe('The URL to fetch.'),
     }),
     execute: async ({ url }) => fetchUrl(url, logger),
   });

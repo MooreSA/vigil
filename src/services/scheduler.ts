@@ -98,8 +98,8 @@ export class SchedulerService {
       );
 
       try {
-        // Create thread with source 'wake'
-        const thread = await this.threadService.create({ source: 'wake' });
+        // Create thread with source 'wake', linked to this run
+        const thread = await this.threadService.create({ source: 'wake', job_run_id: claimed.id });
 
         // Run the agent and drain the stream
         const { stream } = await this.agentService.runStream(thread.id, job.prompt);

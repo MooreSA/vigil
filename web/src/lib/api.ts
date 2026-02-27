@@ -2,6 +2,7 @@ export interface Thread {
   id: string;
   title: string | null;
   source: string;
+  job_run_id: string | null;
   created_at: string;
   updated_at: string;
 }

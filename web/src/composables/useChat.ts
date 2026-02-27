@@ -44,6 +44,7 @@ export function useChat() {
   const streamingContent = ref('');
   const activeToolCalls: Ref<ToolCall[]> = ref([]);
   const threadId: Ref<string | null> = ref(null);
+  const threadSource: Ref<string> = ref('user');
   const loadingHistory = ref(false);
 
   async function loadThread(id: string) {
@@ -51,6 +52,7 @@ export function useChat() {
     try {
       const data = await fetchThread(id);
       threadId.value = id;
+      threadSource.value = data.thread.source;
       messages.value = data.messages
         .filter((m) => m.role !== 'system')
         .map((m) => ({
@@ -69,6 +71,7 @@ export function useChat() {
   function reset() {
     messages.value = [];
     threadId.value = null;
+    threadSource.value = 'user';
     streamingContent.value = '';
     isStreaming.value = false;
   }
@@ -162,6 +165,7 @@ export function useChat() {
     streamingContent,
     activeToolCalls,
     threadId,
+    threadSource,
     loadingHistory,
     loadThread,
     reset,

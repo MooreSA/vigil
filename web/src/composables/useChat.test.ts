@@ -27,7 +27,7 @@ describe('useChat', () => {
   describe('loadThread', () => {
     it('loads and transforms messages', async () => {
       vi.mocked(fetchThread).mockResolvedValue({
-        thread: { id: 't1', title: 'Test', source: 'web', created_at: '', updated_at: '' },
+        thread: { id: 't1', title: 'Test', source: 'web', job_run_id: null, created_at: '', updated_at: ''},
         messages: [
           { id: '1', thread_id: 't1', role: 'system', model: null, content: { content: 'system prompt' }, created_at: '2025-01-01T00:00:00Z' },
           { id: '2', thread_id: 't1', role: 'user', model: null, content: { content: 'hello' }, created_at: '2025-01-01T00:00:01Z' },
@@ -47,7 +47,7 @@ describe('useChat', () => {
 
     it('extracts content from JSONB message format', async () => {
       vi.mocked(fetchThread).mockResolvedValue({
-        thread: { id: 't1', title: null, source: 'web', created_at: '', updated_at: '' },
+        thread: { id: 't1', title: null, source: 'web', job_run_id: null, created_at: '', updated_at: ''},
         messages: [
           { id: '1', thread_id: 't1', role: 'user', model: null, content: { content: 'plain text' }, created_at: '' },
           { id: '2', thread_id: 't1', role: 'assistant', model: null, content: { role: 'assistant', tool_calls: [] }, created_at: '' },
@@ -66,7 +66,7 @@ describe('useChat', () => {
   describe('reset', () => {
     it('clears all state', async () => {
       vi.mocked(fetchThread).mockResolvedValue({
-        thread: { id: 't1', title: null, source: 'web', created_at: '', updated_at: '' },
+        thread: { id: 't1', title: null, source: 'web', job_run_id: null, created_at: '', updated_at: ''},
         messages: [
           { id: '1', thread_id: 't1', role: 'user', model: null, content: { content: 'x' }, created_at: '' },
         ],
@@ -132,7 +132,7 @@ describe('useChat', () => {
       const chat = useChat();
       // Simulate existing thread
       vi.mocked(fetchThread).mockResolvedValue({
-        thread: { id: 'existing', title: null, source: 'web', created_at: '', updated_at: '' },
+        thread: { id: 'existing', title: null, source: 'web', job_run_id: null, created_at: '', updated_at: ''},
         messages: [],
       });
       await chat.loadThread('existing');

@@ -6,6 +6,7 @@ import type { ChatMessage } from '../composables/useChat';
 const props = defineProps<{
   message: ChatMessage;
   isStreaming?: boolean;
+  isWakePrompt?: boolean;
 }>();
 
 function formatTime(dateStr: string) {
@@ -19,8 +20,19 @@ function formatTime(dateStr: string) {
 <template>
   <div class="py-3 px-4">
     <div class="max-w-3xl mx-auto min-w-0">
+      <!-- Wake prompt banner -->
+      <div v-if="isWakePrompt && message.role === 'user'" class="flex flex-col items-center text-center py-2">
+        <div class="flex items-center gap-1.5 text-xs text-muted-foreground mb-1">
+          <svg class="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <span class="font-medium">Scheduled</span>
+        </div>
+        <p class="text-sm text-muted-foreground whitespace-pre-wrap">{{ message.content }}</p>
+      </div>
+
       <!-- User message -->
-      <div v-if="message.role === 'user'" class="flex flex-col items-end">
+      <div v-else-if="message.role === 'user'" class="flex flex-col items-end">
         <div class="bg-secondary rounded-2xl rounded-br-md px-4 py-2.5 max-w-[85%] overflow-hidden">
           <p class="whitespace-pre-wrap break-words">{{ message.content }}</p>
         </div>
