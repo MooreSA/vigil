@@ -189,7 +189,13 @@ export class AgentService {
     try {
       const memories = await this.memoryService.recall(userMessage);
 
-      let systemContent = BASE_INSTRUCTIONS;
+      const now = new Date();
+      const currentTime = now.toLocaleString('en-US', {
+        weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+        hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+      });
+
+      let systemContent = `${BASE_INSTRUCTIONS}\n\nCurrent time: ${currentTime}`;
       if (memories.length > 0) {
         const memoryBlock = memories
           .map((m) => `- ${m.content}`)
