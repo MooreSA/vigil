@@ -1,9 +1,13 @@
 import 'dotenv/config';
+import OpenAI from 'openai';
+import { OpenAIChatCompletionsModel } from '@openai/agents';
 import { loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { createLogger } from './logger.js';
 import { ThreadRepository } from './repositories/threads.js';
 import { MessageRepository } from './repositories/messages.js';
+import { ThreadService } from './services/threads.js';
+import { AgentService } from './services/agent.js';
 import { buildServer } from './api/server.js';
 
 const config = loadConfig();
@@ -13,7 +17,24 @@ const db = createDb(config.databaseUrl);
 const threadRepo = new ThreadRepository(db);
 const messageRepo = new MessageRepository(db);
 
-const server = buildServer({ logger, db });
+const threadService = new ThreadService({ threadRepo, messageRepo });
+
+const openRouterClient = new OpenAI({
+  apiKey: config.openRouterApiKey,
+  baseURL: 'https://openrouter.ai/api/v1',
+});
+// @ts-expect-error: openai ships dual CJS/ESM .d.ts with incompatible #private fields.
+// Runtime class is identical — pure TS dual-package-hazard artifact.
+const chatModel = new OpenAIChatCompletionsModel(openRouterClient, config.openRouterChatModel);
+
+const agentService = new AgentService({
+  model: chatModel,
+  threadService,
+  logger: logger.child({ service: 'agent' }),
+  maxIterations: config.agentMaxIterations,
+});
+
+const server = buildServer({ logger, db, agentService, threadService });
 
 const port = config.port;
 

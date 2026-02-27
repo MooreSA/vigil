@@ -39,6 +39,8 @@ services:
     environment:
       DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
       NODE_ENV: production
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_CHAT_MODEL: ${OPENROUTER_CHAT_MODEL:-anthropic/claude-sonnet-4}
 
 volumes:
   vigil-pgdata:
