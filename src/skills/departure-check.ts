@@ -11,6 +11,9 @@ export const DepartureCheckConfigV1 = z.object({
   arrivalTime: z.string().regex(/^\d{2}:\d{2}$/),
   leadMinutes: z.number().int().min(1).max(60).default(7),
   pollIntervalMinutes: z.number().int().min(1).max(30).default(5),
+  notificationTitle: z.string().default('Time to leave'),
+  notificationBody: z.string().default('Leave now — ~{{durationMin}} min drive via {{routeSummary}}'),
+  notificationTag: z.string().default('car'),
 });
 
 type DepartureCheckConfig = z.infer<typeof DepartureCheckConfigV1>;
@@ -85,10 +88,13 @@ export class DepartureCheckSkill implements Skill {
 
         if (leaveBy.getTime() <= now.getTime() + leadMs) {
           const durationMin = Math.round(durationSecs / 60);
+          const body = config.notificationBody
+            .replace('{{durationMin}}', String(durationMin))
+            .replace('{{routeSummary}}', result.routeSummary);
           await this.notificationService.notify({
-            title: 'Time to leave',
-            body: `Leave for daycare — ~${durationMin} min drive via ${result.routeSummary}`,
-            tag: 'car',
+            title: config.notificationTitle,
+            body,
+            tag: config.notificationTag,
           });
           return {
             success: true,

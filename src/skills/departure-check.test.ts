@@ -121,7 +121,7 @@ describe('DepartureCheckSkill', () => {
     expect(result.message).toContain('Notification sent');
     expect(notificationService.notify).toHaveBeenCalledWith({
       title: 'Time to leave',
-      body: 'Leave for daycare — ~25 min drive via I-5 S',
+      body: 'Leave now — ~25 min drive via I-5 S',
       tag: 'car',
     });
   });
@@ -139,7 +139,7 @@ describe('DepartureCheckSkill', () => {
     expect(result.disableJob).toBe(true);
     expect(notificationService.notify).toHaveBeenCalledWith(
       expect.objectContaining({
-        body: 'Leave for daycare — ~30 min drive via I-5 S',
+        body: 'Leave now — ~30 min drive via I-5 S',
       }),
     );
   });
