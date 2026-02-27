@@ -2,7 +2,7 @@
 import { ref, nextTick } from 'vue';
 
 const emit = defineEmits<{ send: [message: string] }>();
-defineProps<{ disabled?: boolean }>();
+defineProps<{ disabled?: boolean; borderless?: boolean }>();
 
 const input = ref('');
 const textarea = ref<HTMLTextAreaElement | null>(null);
@@ -38,7 +38,7 @@ function submit() {
 </script>
 
 <template>
-  <div ref="wrapper" class="border-t border-border bg-background p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4">
+  <div ref="wrapper" :class="[borderless ? 'p-0' : 'border-t border-border bg-background p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4']">
     <div class="max-w-3xl mx-auto relative">
       <textarea
         ref="textarea"
