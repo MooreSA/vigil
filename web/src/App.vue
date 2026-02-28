@@ -57,16 +57,16 @@ function onThreadSelect() {
 
     <main class="flex-1 flex flex-col min-w-0">
       <!-- Mobile header -->
-      <div class="flex md:hidden items-center gap-3 px-4 py-3 border-b border-border">
+      <div class="flex md:hidden items-center gap-3 px-4 py-3 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <button
           @click="sidebarOpen = true"
-          class="p-2 -ml-2 rounded-lg text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+          class="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
         >
           <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
           </svg>
         </button>
-        <span class="text-sm font-medium truncate">Vigil</span>
+        <span class="text-sm font-semibold tracking-tight truncate">Vigil</span>
       </div>
 
       <router-view />

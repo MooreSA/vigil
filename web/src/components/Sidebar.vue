@@ -11,10 +11,18 @@ const emit = defineEmits<{ 'new-chat': []; 'thread-select': [] }>();
 const route = useRoute();
 const { threads } = useThreads();
 const filter = ref<Filter>('all');
+const search = ref('');
 
 const filteredThreads = computed(() => {
-  if (filter.value === 'all') return threads.value;
-  return threads.value.filter((t) => t.source === filter.value);
+  let list = threads.value;
+  if (filter.value !== 'all') {
+    list = list.filter((t) => t.source === filter.value);
+  }
+  const q = search.value.trim().toLowerCase();
+  if (q) {
+    list = list.filter((t) => (t.title || '').toLowerCase().includes(q));
+  }
+  return list;
 });
 
 function threadTitle(thread: { title: string | null; id: string }) {
@@ -39,13 +47,13 @@ function formatDate(dateStr: string) {
 </script>
 
 <template>
-  <aside class="w-[280px] flex-shrink-0 bg-card md:border-r border-border flex flex-col h-full">
-    <div class="p-3 flex items-center justify-between border-b border-border">
+  <aside class="w-[280px] flex-shrink-0 bg-card md:border-r border-border/60 flex flex-col h-full">
+    <div class="p-3 flex items-center justify-between border-b border-border/60">
       <ThemeToggle />
       <button
         @click="$emit('new-chat')"
-        class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium
-               bg-primary text-primary-foreground hover:bg-primary/80 transition-colors"
+        class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium
+               bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
       >
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
@@ -55,8 +63,8 @@ function formatDate(dateStr: string) {
     </div>
 
     <!-- Filter toggle -->
-    <div class="px-3 pt-2">
-      <div class="flex rounded-lg bg-muted p-0.5 text-sm font-medium">
+    <div class="px-3 py-2">
+      <div class="flex rounded-xl bg-muted/70 p-0.5 text-sm font-medium">
         <button
           v-for="opt in ([
             { key: 'all', label: 'All' },
@@ -67,11 +75,26 @@ function formatDate(dateStr: string) {
           @click="filter = opt.key"
           class="flex-1 rounded-md px-2 py-1.5 text-center transition-colors"
           :class="filter === opt.key
-            ? 'bg-background text-foreground shadow-sm'
+            ? 'bg-background text-foreground shadow-sm shadow-black/10'
             : 'text-foreground/50 hover:text-foreground/70'"
         >
           {{ opt.label }}
         </button>
+      </div>
+    </div>
+
+    <!-- Search -->
+    <div class="px-3 pb-2">
+      <div class="relative">
+        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        </svg>
+        <input
+          v-model="search"
+          type="text"
+          placeholder="Search threads..."
+          class="w-full rounded-lg bg-muted/50 border border-border/40 pl-8 pr-3 py-1.5 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 focus:bg-muted/70"
+        />
       </div>
     </div>
 
@@ -86,10 +109,10 @@ function formatDate(dateStr: string) {
           :key="thread.id"
           :to="`/${thread.id}`"
           @click="emit('thread-select')"
-          class="block mx-2 mb-0.5 px-3 py-2.5 rounded-lg text-sm transition-colors truncate"
+          class="block mx-2 mb-0.5 px-3 py-2.5 rounded-xl text-sm transition-all truncate"
           :class="isActive(thread.id)
-            ? 'bg-accent text-foreground'
-            : 'text-foreground/85 hover:bg-accent hover:text-foreground'"
+            ? 'bg-accent text-foreground shadow-sm shadow-black/5'
+            : 'text-foreground/80 hover:bg-accent/70 hover:text-foreground'"
         >
           <Transition
             mode="out-in"
@@ -112,12 +135,12 @@ function formatDate(dateStr: string) {
               <span class="truncate">{{ threadTitle(thread) }}</span>
             </div>
           </Transition>
-          <div class="text-xs text-foreground/50 mt-0.5">{{ formatDate(thread.updated_at) }}</div>
+          <div class="text-xs text-muted-foreground/60 mt-0.5">{{ formatDate(thread.updated_at) }}</div>
         </router-link>
       </TransitionGroup>
 
       <div v-if="filteredThreads.length === 0" class="px-5 py-8 text-center text-muted-foreground text-sm">
-        {{ filter === 'all' ? 'No conversations yet' : 'No threads found' }}
+        {{ search.trim() ? 'No matching threads' : filter === 'all' ? 'No conversations yet' : 'No threads found' }}
       </div>
     </nav>
   </aside>

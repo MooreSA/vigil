@@ -31,10 +31,10 @@ function formatTokens(n: number) {
 </script>
 
 <template>
-  <div class="mt-1 text-xs text-muted-foreground">
+  <div class="mt-2 text-xs text-muted-foreground/70">
     <button
       @click="expanded = !expanded"
-      class="hover:text-foreground transition-colors flex items-center gap-1"
+      class="hover:text-foreground hover:bg-muted rounded-md px-1.5 py-0.5 -ml-1.5 transition-all flex items-center gap-1"
     >
       <svg
         class="w-3 h-3 transition-transform"
@@ -49,7 +49,7 @@ function formatTokens(n: number) {
       <span v-if="model" class="mx-0.5">&middot;</span>
       <span v-if="model">{{ formatModel(model) }}</span>
     </button>
-    <div v-if="expanded" class="mt-1 pl-4 space-y-0.5">
+    <div v-if="expanded" class="mt-1 pl-4 space-y-0.5 border-l-2 border-border/40 text-muted-foreground/60">
       <div v-if="elapsed">Duration: {{ elapsed }}s</div>
       <div v-if="usage">Tokens: {{ usage.input_tokens.toLocaleString() }} in / {{ usage.output_tokens.toLocaleString() }} out</div>
       <div v-if="model">Model: {{ model }}</div>

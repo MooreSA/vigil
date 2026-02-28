@@ -89,7 +89,7 @@ async function handleSend(text: string) {
       <!-- Messages area -->
       <div
         ref="messagesContainer"
-        class="flex-1 overflow-y-auto overscroll-contain"
+        class="flex-1 overflow-y-auto overscroll-contain conversation-enter"
       >
         <!-- Message list -->
         <div class="py-4">
@@ -101,12 +101,12 @@ async function handleSend(text: string) {
           />
 
           <!-- Active tool calls -->
-          <div v-if="activeToolCalls.length > 0" class="py-2 px-4">
+          <div v-if="activeToolCalls.length > 0" class="py-3 px-4">
             <div class="max-w-3xl mx-auto space-y-1.5">
               <div
                 v-for="(tc, i) in activeToolCalls"
                 :key="i"
-                class="flex items-center gap-2 text-xs text-muted-foreground"
+                class="flex items-center gap-2 text-xs text-muted-foreground/80"
               >
                 <svg v-if="tc.status === 'running'" class="w-3 h-3 animate-spin" viewBox="0 0 16 16" fill="none">
                   <circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.5" opacity="0.3" />

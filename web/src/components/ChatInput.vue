@@ -43,7 +43,7 @@ function submit() {
     :class="[
       borderless
         ? ''
-        : 'border-t border-border bg-background p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4'
+        : 'border-t border-border/60 bg-background/80 backdrop-blur-xl p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4'
     ]"
   >
     <div
@@ -64,7 +64,7 @@ function submit() {
           'w-full resize-none overflow-hidden border text-foreground placeholder-muted-foreground outline-none disabled:opacity-50 transition-all',
           borderless
             ? 'rounded-2xl bg-card border-border/60 shadow-lg shadow-black/5 px-4 md:px-5 py-4 pr-14 text-base focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:shadow-xl focus:shadow-primary/5'
-            : 'rounded-xl bg-input border-border px-3 md:px-4 py-3 pr-14 text-base focus:border-primary focus:ring-1 focus:ring-primary'
+            : 'rounded-2xl bg-card border-border/60 shadow-sm shadow-black/5 px-3 md:px-4 py-3 pr-14 text-base focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:shadow-md focus:shadow-primary/5'
         ]"
       />
       <button
@@ -74,7 +74,7 @@ function submit() {
           'absolute right-2 transition-all',
           borderless
             ? 'bottom-2.5 p-2.5 rounded-xl bg-primary text-primary-foreground disabled:opacity-20 disabled:bg-muted disabled:text-muted-foreground hover:bg-primary/90 active:scale-95'
-            : 'bottom-2 p-2.5 rounded-lg text-muted-foreground hover:text-primary disabled:opacity-30 disabled:hover:text-muted-foreground'
+            : 'bottom-2.5 p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-20 disabled:bg-muted disabled:text-muted-foreground'
         ]"
       >
         <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
