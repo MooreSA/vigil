@@ -1,4 +1,4 @@
-import { ref, watchEffect, onScopeDispose } from 'vue';
+import { ref, watchEffect } from 'vue';
 
 type Theme = 'light' | 'dark';
 
@@ -20,6 +20,10 @@ watchEffect(() => {
   }
 });
 
+function toggle() {
+  theme.value = theme.value === 'dark' ? 'light' : 'dark';
+}
+
 export function useTheme() {
-  return { theme };
+  return { theme, toggle };
 }

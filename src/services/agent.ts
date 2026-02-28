@@ -16,6 +16,7 @@ export type RunFn = (
   agent: Agent,
   input: AgentInputItem[],
   options: { stream: true; maxTurns: number },
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 ) => Promise<StreamedRunResult<any, any>>;
 
 interface AgentServiceDeps {
@@ -121,6 +122,7 @@ export class AgentService {
     let usageResolve: (v: TokenUsage | null) => void;
     const usagePromise = new Promise<TokenUsage | null>((r) => { usageResolve = r; });
 
+    // eslint-disable-next-line @typescript-eslint/no-this-alias
     const self = this;
     const stream = (async function* (): AsyncGenerator<StreamEvent> {
       const callIdToName = new Map<string, string>();

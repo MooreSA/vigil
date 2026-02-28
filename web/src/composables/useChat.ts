@@ -148,6 +148,7 @@ export function useChat() {
         toolCalls: completedTools,
       };
       // Store timing in a way we can access it
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (assistantMsg as any)._elapsed = elapsed;
       messages.value.push(assistantMsg);
     } finally {

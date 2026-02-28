@@ -55,8 +55,6 @@ function submit() {
       <textarea
         ref="textarea"
         v-model="input"
-        @input="adjustHeight"
-        @keydown="handleKeydown"
         :disabled="disabled"
         placeholder="Send a message..."
         rows="1"
@@ -66,9 +64,10 @@ function submit() {
             ? 'rounded-2xl bg-card border-border/60 shadow-lg shadow-black/5 px-4 md:px-5 py-4 pr-14 text-base focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:shadow-xl focus:shadow-primary/5'
             : 'rounded-2xl bg-card border-border/60 shadow-sm shadow-black/5 px-3 md:px-4 py-3 pr-14 text-base focus:border-primary/50 focus:ring-2 focus:ring-primary/20 focus:shadow-md focus:shadow-primary/5'
         ]"
+        @input="adjustHeight"
+        @keydown="handleKeydown"
       />
       <button
-        @click="submit"
         :disabled="disabled || !input.trim()"
         :class="[
           'absolute right-2 transition-all',
@@ -76,9 +75,20 @@ function submit() {
             ? 'bottom-2.5 p-2.5 rounded-xl bg-primary text-primary-foreground disabled:opacity-20 disabled:bg-muted disabled:text-muted-foreground hover:bg-primary/90 active:scale-95'
             : 'bottom-2.5 p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-20 disabled:bg-muted disabled:text-muted-foreground'
         ]"
+        @click="submit"
       >
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18" />
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M4.5 10.5L12 3m0 0l7.5 7.5M12 3v18"
+          />
         </svg>
       </button>
     </div>

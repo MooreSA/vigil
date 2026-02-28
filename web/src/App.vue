@@ -11,7 +11,7 @@ useTheme(); // Initialize theme on mount
 
 const { threads, load } = useThreads();
 const router = useRouter();
-const route = useRoute();
+const _route = useRoute();
 const eventStream = useEventStream();
 const sidebarOpen = ref(false);
 
@@ -50,8 +50,15 @@ function onThreadSelect() {
 
     <!-- Mobile sidebar (sheet) -->
     <Sheet v-model:open="sidebarOpen">
-      <SheetContent side="left" class="w-full sm:w-[280px] p-0 [&>button:last-child]:hidden">
-        <Sidebar @new-chat="onNewChat" @thread-select="onThreadSelect" @close="sidebarOpen = false" />
+      <SheetContent
+        side="left"
+        class="w-full sm:w-[280px] p-0 [&>button:last-child]:hidden"
+      >
+        <Sidebar
+          @new-chat="onNewChat"
+          @thread-select="onThreadSelect"
+          @close="sidebarOpen = false"
+        />
       </SheetContent>
     </Sheet>
 
@@ -59,11 +66,21 @@ function onThreadSelect() {
       <!-- Mobile header -->
       <div class="flex md:hidden items-center gap-3 px-4 py-3 border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <button
-          @click="sidebarOpen = true"
           class="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
+          @click="sidebarOpen = true"
         >
-          <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+          <svg
+            class="w-5 h-5"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+            />
           </svg>
         </button>
         <span class="text-sm font-semibold tracking-tight truncate">Vigil</span>

@@ -16,7 +16,6 @@ function mockJobService(): JobService {
   } as unknown as JobService;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function invoke(t: { invoke: (...args: any[]) => Promise<string> }, args: Record<string, unknown> = {}) {
   return t.invoke({}, JSON.stringify(args));
 }

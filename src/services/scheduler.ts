@@ -145,7 +145,6 @@ export class SchedulerService {
           const thread = await this.threadService.create({ source: 'wake', job_run_id: claimed.id });
 
           const { stream } = await this.agentService.runStream(thread.id, job.prompt!);
-          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           for await (const _event of stream) {
             // Drain — events are consumed but not forwarded anywhere
           }

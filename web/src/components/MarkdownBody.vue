@@ -5,6 +5,7 @@ import type { BundledLanguage } from 'shiki';
 
 const props = defineProps<{ content: string }>();
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const highlighter = ref<any>(null);
 
 function escapeHtml(str: string): string {
@@ -60,5 +61,8 @@ const rendered = computed(() => md.render(props.content));
 </script>
 
 <template>
-  <div class="markdown-body overflow-hidden" v-html="rendered" />
+  <div
+    class="markdown-body overflow-hidden"
+    v-html="rendered"
+  />
 </template>

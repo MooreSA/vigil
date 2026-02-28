@@ -1,5 +1,6 @@
 export function useEventStream() {
   let es: EventSource | null = null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const listeners = new Map<string, (data: any) => void>();
 
   function connect() {
@@ -11,6 +12,7 @@ export function useEventStream() {
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   function on(event: string, handler: (data: any) => void) {
     listeners.set(event, handler);
     if (es) {

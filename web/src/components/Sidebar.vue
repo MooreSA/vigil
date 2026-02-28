@@ -50,11 +50,21 @@ function formatDate(dateStr: string) {
     <!-- Mobile close -->
     <div class="md:hidden p-2 border-b border-border/60">
       <button
-        @click="emit('close')"
         class="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
+        @click="emit('close')"
       >
-        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+        <svg
+          class="w-5 h-5"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 19.5L8.25 12l7.5-7.5"
+          />
         </svg>
       </button>
     </div>
@@ -69,11 +79,11 @@ function formatDate(dateStr: string) {
             { key: 'wake', label: 'Scheduled' },
           ] as const)"
           :key="opt.key"
-          @click="filter = opt.key"
           class="flex-1 rounded-md px-2 py-1.5 text-center transition-colors"
           :class="filter === opt.key
             ? 'bg-background text-foreground shadow-sm shadow-black/10'
             : 'text-foreground/50 hover:text-foreground/70'"
+          @click="filter = opt.key"
         >
           {{ opt.label }}
         </button>
@@ -83,15 +93,25 @@ function formatDate(dateStr: string) {
     <!-- Search -->
     <div class="px-3 py-2 pt-3">
       <div class="relative">
-        <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+        <svg
+          class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z"
+          />
         </svg>
         <input
           v-model="search"
           type="text"
           placeholder="Search threads..."
           class="w-full rounded-lg bg-muted/50 border border-border/40 pl-8 pr-3 py-1.5 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 focus:bg-muted/70"
-        />
+        >
       </div>
     </div>
 
@@ -105,11 +125,11 @@ function formatDate(dateStr: string) {
           v-for="thread in filteredThreads"
           :key="thread.id"
           :to="`/${thread.id}`"
-          @click="emit('thread-select')"
           class="block mx-2 mb-0.5 px-3 py-2.5 rounded-xl text-sm transition-all truncate"
           :class="isActive(thread.id)
             ? 'bg-accent text-foreground shadow-sm shadow-black/5'
             : 'text-foreground/80 hover:bg-accent/70 hover:text-foreground'"
+          @click="emit('thread-select')"
         >
           <Transition
             mode="out-in"
@@ -118,7 +138,10 @@ function formatDate(dateStr: string) {
             enter-from-class="opacity-0"
             leave-to-class="opacity-0"
           >
-            <div class="truncate flex items-center gap-1.5" :key="threadTitle(thread)">
+            <div
+              :key="threadTitle(thread)"
+              class="truncate flex items-center gap-1.5"
+            >
               <svg
                 v-if="thread.source === 'wake'"
                 class="w-3.5 h-3.5 shrink-0 text-muted-foreground"
@@ -127,16 +150,25 @@ function formatDate(dateStr: string) {
                 stroke="currentColor"
                 stroke-width="2"
               >
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                />
               </svg>
               <span class="truncate">{{ threadTitle(thread) }}</span>
             </div>
           </Transition>
-          <div class="text-xs text-muted-foreground/60 mt-0.5">{{ formatDate(thread.updated_at) }}</div>
+          <div class="text-xs text-muted-foreground/60 mt-0.5">
+            {{ formatDate(thread.updated_at) }}
+          </div>
         </router-link>
       </TransitionGroup>
 
-      <div v-if="filteredThreads.length === 0" class="px-5 py-8 text-center text-muted-foreground text-sm">
+      <div
+        v-if="filteredThreads.length === 0"
+        class="px-5 py-8 text-center text-muted-foreground text-sm"
+      >
         {{ search.trim() ? 'No matching threads' : filter === 'all' ? 'No conversations yet' : 'No threads found' }}
       </div>
     </nav>
@@ -144,12 +176,22 @@ function formatDate(dateStr: string) {
     <!-- New Chat -->
     <div class="p-3 border-t border-border/60">
       <button
-        @click="$emit('new-chat')"
         class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium
                bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
+        @click="$emit('new-chat')"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 4.5v15m7.5-7.5h-15"
+          />
         </svg>
         New Chat
       </button>
