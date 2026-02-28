@@ -1,16 +1,15 @@
-import { ref, watchEffect } from 'vue';
+import { ref, watchEffect, onScopeDispose } from 'vue';
 
 type Theme = 'light' | 'dark';
 
-const STORAGE_KEY = 'vigil-theme';
+const mq = window.matchMedia('(prefers-color-scheme: light)');
+const theme = ref<Theme>(mq.matches ? 'light' : 'dark');
 
-function getInitialTheme(): Theme {
-  const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === 'light' || stored === 'dark') return stored;
-  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+function onChange(e: MediaQueryListEvent) {
+  theme.value = e.matches ? 'light' : 'dark';
 }
 
-const theme = ref<Theme>(getInitialTheme());
+mq.addEventListener('change', onChange);
 
 watchEffect(() => {
   const html = document.documentElement;
@@ -19,13 +18,8 @@ watchEffect(() => {
   } else {
     html.classList.remove('light');
   }
-  localStorage.setItem(STORAGE_KEY, theme.value);
 });
 
 export function useTheme() {
-  function toggle() {
-    theme.value = theme.value === 'dark' ? 'light' : 'dark';
-  }
-
-  return { theme, toggle };
+  return { theme };
 }

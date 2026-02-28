@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
-import ThemeToggle from './ThemeToggle.vue';
 import { useThreads } from '../composables/useThreads';
 
 type Filter = 'all' | 'user' | 'wake';
 
-const emit = defineEmits<{ 'new-chat': []; 'thread-select': [] }>();
+const emit = defineEmits<{ 'new-chat': []; 'thread-select': []; 'close': [] }>();
 
 const route = useRoute();
 const { threads } = useThreads();
@@ -47,23 +46,21 @@ function formatDate(dateStr: string) {
 </script>
 
 <template>
-  <aside class="w-[280px] flex-shrink-0 bg-card md:border-r border-border/60 flex flex-col h-full">
-    <div class="p-3 flex items-center justify-between border-b border-border/60">
-      <ThemeToggle />
+  <aside class="w-full md:w-[280px] flex-shrink-0 bg-card md:border-r border-border/60 flex flex-col h-full">
+    <!-- Mobile close -->
+    <div class="md:hidden p-2 border-b border-border/60">
       <button
-        @click="$emit('new-chat')"
-        class="flex items-center gap-2 px-3 py-2 rounded-xl text-sm font-medium
-               bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
+        @click="emit('close')"
+        class="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        <svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
         </svg>
-        New Chat
       </button>
     </div>
 
     <!-- Filter toggle -->
-    <div class="px-3 py-2">
+    <div class="px-3 pt-3">
       <div class="flex rounded-xl bg-muted/70 p-0.5 text-sm font-medium">
         <button
           v-for="opt in ([
@@ -84,7 +81,7 @@ function formatDate(dateStr: string) {
     </div>
 
     <!-- Search -->
-    <div class="px-3 pb-2">
+    <div class="px-3 py-2 pt-3">
       <div class="relative">
         <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 pointer-events-none" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
           <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
@@ -98,7 +95,7 @@ function formatDate(dateStr: string) {
       </div>
     </div>
 
-    <nav class="flex-1 overflow-y-auto py-2">
+    <nav class="flex-1 overflow-y-auto">
       <TransitionGroup
         enter-active-class="transition-all duration-300 ease-out"
         enter-from-class="opacity-0 -translate-y-2"
@@ -143,5 +140,19 @@ function formatDate(dateStr: string) {
         {{ search.trim() ? 'No matching threads' : filter === 'all' ? 'No conversations yet' : 'No threads found' }}
       </div>
     </nav>
+
+    <!-- New Chat -->
+    <div class="p-3 border-t border-border/60">
+      <button
+        @click="$emit('new-chat')"
+        class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium
+               bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
+      >
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+        </svg>
+        New Chat
+      </button>
+    </div>
   </aside>
 </template>

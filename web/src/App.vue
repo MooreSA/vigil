@@ -50,8 +50,8 @@ function onThreadSelect() {
 
     <!-- Mobile sidebar (sheet) -->
     <Sheet v-model:open="sidebarOpen">
-      <SheetContent side="left" class="w-[280px] p-0">
-        <Sidebar @new-chat="onNewChat" @thread-select="onThreadSelect" />
+      <SheetContent side="left" class="w-full sm:w-[280px] p-0 [&>button:last-child]:hidden">
+        <Sidebar @new-chat="onNewChat" @thread-select="onThreadSelect" @close="sidebarOpen = false" />
       </SheetContent>
     </Sheet>
 

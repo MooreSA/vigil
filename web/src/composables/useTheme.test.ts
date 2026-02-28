@@ -1,61 +1,35 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { nextTick } from 'vue';
 
-// Need to reset module state between tests
+let listeners: ((e: MediaQueryListEvent) => void)[] = [];
+
 beforeEach(() => {
   vi.resetModules();
-  localStorage.clear();
+  listeners = [];
   document.documentElement.classList.remove('light');
 });
 
+function mockMatchMedia(matches: boolean) {
+  vi.spyOn(window, 'matchMedia').mockReturnValue({
+    matches,
+    addEventListener: (_: string, cb: (e: MediaQueryListEvent) => void) => {
+      listeners.push(cb);
+    },
+    removeEventListener: vi.fn(),
+  } as unknown as MediaQueryList);
+}
+
 describe('useTheme', () => {
-  it('defaults to dark when no preference stored', async () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue({
-      matches: false,
-    } as MediaQueryList);
-
+  it('defaults to dark when system prefers dark', async () => {
+    mockMatchMedia(false);
     const { useTheme } = await import('./useTheme');
     const { theme } = useTheme();
     expect(theme.value).toBe('dark');
   });
 
-  it('restores stored theme from localStorage', async () => {
-    localStorage.setItem('vigil-theme', 'light');
-    vi.spyOn(window, 'matchMedia').mockReturnValue({
-      matches: false,
-    } as MediaQueryList);
-
+  it('uses light when system prefers light', async () => {
+    mockMatchMedia(true);
     const { useTheme } = await import('./useTheme');
     const { theme } = useTheme();
     expect(theme.value).toBe('light');
-  });
-
-  it('toggle switches between dark and light', async () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue({
-      matches: false,
-    } as MediaQueryList);
-
-    const { useTheme } = await import('./useTheme');
-    const { theme, toggle } = useTheme();
-
-    expect(theme.value).toBe('dark');
-    toggle();
-    expect(theme.value).toBe('light');
-    toggle();
-    expect(theme.value).toBe('dark');
-  });
-
-  it('persists to localStorage on change', async () => {
-    vi.spyOn(window, 'matchMedia').mockReturnValue({
-      matches: false,
-    } as MediaQueryList);
-
-    const { useTheme } = await import('./useTheme');
-    const { toggle } = useTheme();
-
-    toggle();
-    // watchEffect is async — flush it
-    await nextTick();
-    expect(localStorage.getItem('vigil-theme')).toBe('light');
   });
 });
