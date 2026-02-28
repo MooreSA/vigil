@@ -2,6 +2,8 @@
 import { onMounted, onUnmounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import Sidebar from './components/Sidebar.vue';
+import ReloadPWA from './components/ReloadPWA.vue';
+import OfflineBanner from './components/OfflineBanner.vue';
 import { Sheet, SheetContent } from './components/ui/sheet';
 import { useThreads } from './composables/useThreads';
 import { useTheme } from './composables/useTheme';
@@ -43,6 +45,8 @@ function onThreadSelect() {
 
 <template>
   <div class="flex h-screen overflow-hidden bg-background text-foreground">
+    <OfflineBanner />
+    <ReloadPWA />
     <!-- Desktop sidebar -->
     <div class="hidden md:block">
       <Sidebar @new-chat="onNewChat" />
