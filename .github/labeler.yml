@@ -1,0 +1,31 @@
+backend:
+  - changed-files:
+      - any-glob-to-any-file: "src/**"
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: "web/**"
+
+database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/db/**"
+          - "src/repositories/**"
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/**"
+          - "Dockerfile"
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "package.json"
+          - "package-lock.json"
+          - "web/package.json"
+          - "web/package-lock.json"
+
+tests:
+  - changed-files:
+      - any-glob-to-any-file: "**/*.test.ts"
