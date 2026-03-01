@@ -16,24 +16,13 @@ services:
       timeout: 3s
       retries: 5
 
-  migrate:
-    build: .
-    container_name: vigil-migrate
-    command: npm run migrate:prod
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      DATABASE_URL: postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}
-
   app:
+    image: ghcr.io/mooresa/vigil:latest
     build: .
     container_name: vigil-app
     depends_on:
       postgres:
         condition: service_healthy
-      migrate:
-        condition: service_completed_successfully
     ports:
       - "${PORT:-3000}:3000"
     environment:
