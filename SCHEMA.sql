@@ -68,7 +68,7 @@ FOR EACH ROW EXECUTE FUNCTION set_updated_at();
 CREATE TABLE jobs (
     id            BIGSERIAL PRIMARY KEY,
     name          TEXT NOT NULL,
-    schedule      TEXT NOT NULL,
+    schedule      TEXT,
     prompt        TEXT NOT NULL,
     enabled       BOOLEAN NOT NULL DEFAULT TRUE,
     max_retries   INT NOT NULL DEFAULT 3,
