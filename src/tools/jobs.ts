@@ -33,22 +33,24 @@ export function createCreateJobTool(jobService: JobService, logger: Logger) {
   return tool({
     name: 'create_job',
     description:
-      'Create a new scheduled job. The schedule is a cron expression (e.g. "0 8 * * *" for daily at 8am, "*/30 * * * *" for every 30 minutes). For prompt jobs, the prompt is what the agent will execute. For skill jobs, set skill_name and skill_config instead (use list_skills to see available skills).',
+      'Create a new scheduled job. For recurring jobs, provide a cron schedule (e.g. "0 8 * * *" for daily at 8am). For one-shot jobs, provide run_at as an ISO 8601 timestamp — the job fires once and is then disabled. For prompt jobs, the prompt is what the agent will execute. For skill jobs, set skill_name and skill_config instead (use list_skills to see available skills).',
     parameters: z.object({
       name: z.string().describe('Human-readable name for this job.'),
-      schedule: z.string().describe('Cron expression for when the job should run.'),
+      schedule: z.string().nullable().optional().describe('Cron expression for recurring jobs (e.g. "0 8 * * *" for daily at 8am). Provide either schedule or run_at, not both.'),
+      run_at: z.string().nullable().optional().describe('ISO 8601 timestamp for one-shot jobs. The job fires once at this time and is then disabled. Provide either run_at or schedule, not both.'),
       prompt: z.string().nullable().optional().describe('The prompt/instruction the agent will execute on each run. Required for prompt jobs, omit for skill jobs.'),
       enabled: z.boolean().nullable().optional().describe('Whether the job is active. Defaults to true.'),
       max_retries: z.number().int().min(0).max(10).nullable().optional().describe('Max retry attempts on failure. Defaults to 3.'),
       skill_name: z.string().nullable().optional().describe('Name of the skill to run instead of a prompt. Use list_skills to see available skills.'),
       skill_config: z.record(z.string(), z.unknown()).nullable().optional().describe('Configuration object for the skill. Schema depends on the skill — use list_skills to see required fields.'),
     }),
-    execute: async ({ name, schedule, prompt, enabled, max_retries, skill_name, skill_config }) => {
-      logger.info({ tool: 'create_job', name, schedule, skill_name }, 'Tool called: create_job');
+    execute: async ({ name, schedule, run_at, prompt, enabled, max_retries, skill_name, skill_config }) => {
+      logger.info({ tool: 'create_job', name, schedule, run_at, skill_name }, 'Tool called: create_job');
       try {
         const job = await jobService.create({
           name,
-          schedule,
+          schedule: schedule ?? undefined,
+          run_at: run_at ?? undefined,
           prompt: prompt ?? undefined,
           enabled: enabled ?? undefined,
           max_retries: max_retries ?? undefined,

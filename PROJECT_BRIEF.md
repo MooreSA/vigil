@@ -173,4 +173,36 @@ src/services/sandbox.ts → spawns container, streams stdout/stderr, enforces ti
 - Which languages? (Python, Node, bash, all three)
 - Network access — fully isolated or allow fetches?
 - Filesystem — read-only root + writable tmpfs for scratch?
-- Docker availability — is the host always running Docker, or does Vigil itself run inside a container?
+- Docker availability — is the host already running Docker, or does Vigil itself run inside a container?
+
+---
+
+### Claude Code as a Self-Iteration Agent
+
+Spin up Claude Code (CC) instances inside Docker containers to let Vigil modify its own codebase — write features, fix bugs, run tests, commit — without direct host access.
+
+**Architecture:**
+- Vigil runs bare-metal (no Docker-in-Docker)
+- On task creation, Vigil creates a git worktree (`git worktree add`) from the target branch
+- Vigil spawns a Docker container with the worktree bind-mounted at `/workspace`
+- CC runs inside the container, makes edits, commits to the worktree
+- Container exits (`--rm`), Vigil surfaces the diff for human review
+- User approves → merge worktree branch to main
+
+**Container setup:**
+```
+docker run --rm \
+  -v /path/to/worktree:/workspace \
+  -e ANTHROPIC_API_KEY=... \
+  --memory=512m --cpus=1 \
+  vigil-cc-sandbox
+```
+
+**Image:** custom image with `claude` CLI + Node + dev toolchain pre-installed. Auth via `ANTHROPIC_API_KEY` env var (not OAuth — OAuth is for interactive human sessions, not headless automation).
+
+**Open questions:**
+- Store active container IDs in the DB so sessions can be monitored or killed from the UI
+- Stream container stdout/stderr back to a thread via SSE for visibility
+- Wall-clock timeout: kill container if it stalls (configurable, default ~10min)
+- Network access: CC needs internet to reach the Anthropic API; restrict all other egress?
+- Review UX: how does the user inspect and approve the diff before merge?
