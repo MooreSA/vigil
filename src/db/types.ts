@@ -61,10 +61,18 @@ export interface JobRunsTable {
   created_at: ColumnType<Date, never, never>;
 }
 
+export interface UserProfileTable {
+  id: Generated<number>;
+  content: string;
+  created_at: ColumnType<Date, never, never>;
+  updated_at: ColumnType<Date, never, never>;
+}
+
 export interface DB {
   threads: ThreadsTable;
   messages: MessagesTable;
   memory_entries: MemoryEntriesTable;
   jobs: JobsTable;
   job_runs: JobRunsTable;
+  user_profile: UserProfileTable;
 }

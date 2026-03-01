@@ -33,6 +33,22 @@ export async function fetchThread(id: string): Promise<{ thread: Thread; message
   return res.json();
 }
 
+export async function fetchUserProfile(): Promise<{ content: string }> {
+  const res = await fetch('/v1/user-profile');
+  if (!res.ok) throw new Error(`Failed to fetch user profile: ${res.status}`);
+  return res.json();
+}
+
+export async function updateUserProfile(content: string): Promise<{ content: string }> {
+  const res = await fetch('/v1/user-profile', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content }),
+  });
+  if (!res.ok) throw new Error(`Failed to update user profile: ${res.status}`);
+  return res.json();
+}
+
 export async function* streamChat(
   threadId: string | null,
   message: string,

@@ -4,6 +4,7 @@ import { AgentService } from './agent.js';
 import type { RunFn, StreamEvent } from './agent.js';
 import type { ThreadService } from './threads.js';
 import type { MemoryService } from './memory.js';
+import type { UserProfileService } from './user-profile.js';
 import type { OpenAIChatCompletionsModel } from '@openai/agents';
 import pino from 'pino';
 
@@ -26,6 +27,13 @@ function mockMemoryService(): MemoryService {
     delete: vi.fn(),
     update: vi.fn(),
   } as unknown as MemoryService;
+}
+
+function mockUserProfileService(): UserProfileService {
+  return {
+    get: vi.fn().mockResolvedValue(''),
+    update: vi.fn(),
+  } as unknown as UserProfileService;
 }
 
 function fakeStreamResult(chunks: string[], usage?: { inputTokens: number; outputTokens: number; totalTokens: number }) {
@@ -53,6 +61,7 @@ const logger = pino({ level: 'silent' });
 
 let threadService: ReturnType<typeof mockThreadService>;
 let memoryService: ReturnType<typeof mockMemoryService>;
+let userProfileService: ReturnType<typeof mockUserProfileService>;
 let eventBus: EventEmitter;
 let runFn: ReturnType<typeof vi.fn<RunFn>>;
 let service: AgentService;
@@ -60,6 +69,7 @@ let service: AgentService;
 beforeEach(() => {
   threadService = mockThreadService();
   memoryService = mockMemoryService();
+  userProfileService = mockUserProfileService();
   eventBus = new EventEmitter();
   runFn = vi.fn<RunFn>();
   service = new AgentService({
@@ -68,6 +78,7 @@ beforeEach(() => {
     eventBus,
     threadService,
     memoryService,
+    userProfileService,
     logger,
     maxIterations: 5,
     tools: [],
@@ -228,6 +239,57 @@ describe('AgentService', () => {
       expect(systemCall).toBeDefined();
       const systemContent = (systemCall![0].content as { content: string }).content;
       expect(systemContent).toContain('User prefers dark mode');
+    });
+
+    it('includes user profile in system prompt when set', async () => {
+      vi.mocked(threadService.getMessages).mockResolvedValueOnce([
+        { id: '1', thread_id: 't1', role: 'user', content: { role: 'user', content: 'hello' }, model: null, deleted_at: null, created_at: new Date() },
+      ] as any);
+
+      vi.mocked(userProfileService.get).mockResolvedValue('My name is Seamus. I live in Dublin.');
+
+      vi.mocked(threadService.getMessages).mockResolvedValueOnce([
+        { id: '2', thread_id: 't1', role: 'system', content: { role: 'system', content: 'system prompt here' }, model: null, deleted_at: null, created_at: new Date() },
+        { id: '1', thread_id: 't1', role: 'user', content: { role: 'user', content: 'hello' }, model: null, deleted_at: null, created_at: new Date() },
+      ] as any);
+
+      runFn.mockResolvedValue(fakeStreamResult(['Hi!']) as any);
+
+      const { stream } = await service.runStream('t1', 'hello');
+      for await (const _ of stream) { /* drain */ }
+
+      const systemCall = vi.mocked(threadService.addMessage).mock.calls.find(
+        (c) => c[0].role === 'system',
+      );
+      expect(systemCall).toBeDefined();
+      const systemContent = (systemCall![0].content as { content: string }).content;
+      expect(systemContent).toContain('User profile:');
+      expect(systemContent).toContain('My name is Seamus. I live in Dublin.');
+    });
+
+    it('omits user profile section when profile is empty', async () => {
+      vi.mocked(threadService.getMessages).mockResolvedValueOnce([
+        { id: '1', thread_id: 't1', role: 'user', content: { role: 'user', content: 'hello' }, model: null, deleted_at: null, created_at: new Date() },
+      ] as any);
+
+      vi.mocked(userProfileService.get).mockResolvedValue('');
+
+      vi.mocked(threadService.getMessages).mockResolvedValueOnce([
+        { id: '2', thread_id: 't1', role: 'system', content: { role: 'system', content: 'system prompt here' }, model: null, deleted_at: null, created_at: new Date() },
+        { id: '1', thread_id: 't1', role: 'user', content: { role: 'user', content: 'hello' }, model: null, deleted_at: null, created_at: new Date() },
+      ] as any);
+
+      runFn.mockResolvedValue(fakeStreamResult(['Hi!']) as any);
+
+      const { stream } = await service.runStream('t1', 'hello');
+      for await (const _ of stream) { /* drain */ }
+
+      const systemCall = vi.mocked(threadService.addMessage).mock.calls.find(
+        (c) => c[0].role === 'system',
+      );
+      expect(systemCall).toBeDefined();
+      const systemContent = (systemCall![0].content as { content: string }).content;
+      expect(systemContent).not.toContain('User profile:');
     });
 
     it('skips system prompt assembly on subsequent messages', async () => {

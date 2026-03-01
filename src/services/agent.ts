@@ -11,6 +11,7 @@ import type { EventBus } from '../events.js';
 import type { Logger } from '../logger.js';
 import type { ThreadService } from './threads.js';
 import type { MemoryService } from './memory.js';
+import type { UserProfileService } from './user-profile.js';
 
 export type RunFn = (
   agent: Agent,
@@ -25,6 +26,7 @@ interface AgentServiceDeps {
   eventBus: EventBus;
   threadService: ThreadService;
   memoryService: MemoryService;
+  userProfileService: UserProfileService;
   logger: Logger;
   maxIterations: number;
   tools: Tool[];
@@ -67,6 +69,7 @@ export class AgentService {
   private eventBus: EventBus;
   private threadService: ThreadService;
   private memoryService: MemoryService;
+  private userProfileService: UserProfileService;
   private logger: Logger;
   private maxIterations: number;
   private tools: Tool[];
@@ -78,6 +81,7 @@ export class AgentService {
     this.eventBus = deps.eventBus;
     this.threadService = deps.threadService;
     this.memoryService = deps.memoryService;
+    this.userProfileService = deps.userProfileService;
     this.logger = deps.logger;
     this.maxIterations = deps.maxIterations;
     this.tools = deps.tools;
@@ -189,7 +193,10 @@ export class AgentService {
 
   private async assembleSystemPrompt(threadId: string, userMessage: string): Promise<void> {
     try {
-      const memories = await this.memoryService.recall(userMessage);
+      const [memories, userProfile] = await Promise.all([
+        this.memoryService.recall(userMessage),
+        this.userProfileService.get(),
+      ]);
 
       const now = new Date();
       const currentTime = now.toLocaleString('en-US', {
@@ -198,6 +205,11 @@ export class AgentService {
       });
 
       let systemContent = `${BASE_INSTRUCTIONS}\n\nCurrent time: ${currentTime}`;
+
+      if (userProfile) {
+        systemContent += `\n\nUser profile:\n${userProfile}`;
+      }
+
       if (memories.length > 0) {
         const memoryBlock = memories
           .map((m) => `- ${m.content}`)
