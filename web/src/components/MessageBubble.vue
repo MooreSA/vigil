@@ -18,7 +18,7 @@ function formatTime(dateStr: string) {
 </script>
 
 <template>
-  <div class="py-2 first:pt-4 px-4">
+  <div class="py-2 first:pt-4 px-4 pl-[max(1rem,env(safe-area-inset-left))] pr-[max(1rem,env(safe-area-inset-right))] md:px-4">
     <div class="max-w-3xl mx-auto min-w-0">
       <!-- Wake prompt banner -->
       <div
@@ -69,7 +69,7 @@ function formatTime(dateStr: string) {
           v-if="message.toolCalls?.length"
           class="mb-2 group"
         >
-          <summary class="flex items-center gap-1.5 text-xs text-muted-foreground/80 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden hover:bg-muted rounded-md px-1.5 py-0.5 -ml-1.5 transition-colors">
+          <summary class="flex items-center gap-1.5 text-xs text-muted-foreground/80 cursor-pointer select-none list-none [&::-webkit-details-marker]:hidden hover:bg-muted rounded-md px-1.5 py-1.5 -ml-1.5 transition-colors">
             <svg
               class="w-3 h-3 text-green-500 shrink-0"
               viewBox="0 0 16 16"

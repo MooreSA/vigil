@@ -44,7 +44,7 @@ function onThreadSelect() {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-background text-foreground">
+  <div class="flex h-[100dvh] overflow-hidden bg-background text-foreground">
     <OfflineBanner />
     <ReloadPWA />
     <!-- Desktop sidebar -->
@@ -68,9 +68,9 @@ function onThreadSelect() {
 
     <main class="flex-1 flex flex-col min-w-0">
       <!-- Mobile header -->
-      <div class="flex md:hidden items-center gap-3 px-4 py-3 border-b border-border/60 bg-background/80 backdrop-blur-xl">
+      <div class="flex md:hidden items-center gap-3 px-4 pr-[max(1rem,env(safe-area-inset-right))] py-3 pt-[max(0.75rem,env(safe-area-inset-top))] border-b border-border/60 bg-background/80 backdrop-blur-xl">
         <button
-          class="p-2 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
+          class="p-2.5 -ml-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
           @click="sidebarOpen = true"
         >
           <svg

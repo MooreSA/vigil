@@ -118,12 +118,25 @@
 @layer base {
   * {
     @apply border-border outline-ring/50;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html {
+    overscroll-behavior: none;
   }
   body {
     @apply bg-background text-foreground;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overscroll-behavior: none;
+  }
+  /* Prevent iOS auto-zoom on input focus (requires >= 16px) */
+  input, textarea, select {
+    font-size: 16px;
+  }
+  /* Prevent double-tap zoom on interactive elements */
+  button, a, [role="button"] {
+    touch-action: manipulation;
   }
 }
 
@@ -265,6 +278,12 @@
 @media (pointer: coarse) {
   .code-copy-btn {
     opacity: 1;
+    /* Larger touch target on touch devices */
+    min-height: 2.25rem;
+    min-width: 2.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 }
 
@@ -313,4 +332,24 @@
   content: '▋';
   animation: blink 1s step-end infinite;
   color: var(--primary);
+}
+
+/* Mobile code block overflow — constrain to viewport */
+@media (max-width: 767px) {
+  .markdown-body pre {
+    max-width: calc(100vw - 2rem);
+  }
+  .markdown-body table {
+    display: block;
+    overflow-x: auto;
+    max-width: calc(100vw - 2rem);
+  }
+}
+
+/* Standalone PWA — ensure content doesn't hide behind system UI */
+@media (display-mode: standalone) {
+  html {
+    /* Prevent pull-to-refresh in standalone PWA */
+    overscroll-behavior-y: contain;
+  }
 }

@@ -43,7 +43,7 @@ function submit() {
     :class="[
       borderless
         ? ''
-        : 'border-t border-border/60 bg-background/80 backdrop-blur-xl p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4'
+        : 'border-t border-border/60 bg-background/80 backdrop-blur-xl p-3 md:p-4 pb-[calc(0.75rem+env(safe-area-inset-bottom))] md:pb-4 pl-[max(0.75rem,env(safe-area-inset-left))] pr-[max(0.75rem,env(safe-area-inset-right))] md:pl-4 md:pr-4'
     ]"
   >
     <div
@@ -73,7 +73,7 @@ function submit() {
           'absolute right-2 transition-all',
           borderless
             ? 'bottom-2.5 p-2.5 rounded-xl bg-primary text-primary-foreground disabled:opacity-20 disabled:bg-muted disabled:text-muted-foreground hover:bg-primary/90 active:scale-95'
-            : 'bottom-2.5 p-2 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-20 disabled:bg-muted disabled:text-muted-foreground'
+            : 'bottom-1.5 p-2.5 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 disabled:opacity-20 disabled:bg-muted disabled:text-muted-foreground'
         ]"
         @click="submit"
       >

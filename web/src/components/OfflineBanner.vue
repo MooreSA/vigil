@@ -8,7 +8,7 @@ const online = useOnline();
   <Transition name="slide-down">
     <div
       v-if="!online"
-      class="fixed top-0 inset-x-0 z-50 flex items-center justify-center gap-2 bg-destructive px-4 py-2 text-sm text-white"
+      class="fixed top-0 inset-x-0 z-50 flex items-center justify-center gap-2 bg-destructive px-4 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] text-sm text-white"
       role="status"
     >
       <!-- eslint-disable vue/max-attributes-per-line -->

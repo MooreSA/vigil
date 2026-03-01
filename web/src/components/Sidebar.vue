@@ -46,11 +46,11 @@ function formatDate(dateStr: string) {
 </script>
 
 <template>
-  <aside class="w-full md:w-[280px] flex-shrink-0 bg-card md:border-r border-border/60 flex flex-col h-full">
+  <aside class="w-full md:w-[280px] flex-shrink-0 bg-card md:border-r border-border/60 flex flex-col h-full pl-[env(safe-area-inset-left)] md:pl-0">
     <!-- Mobile close -->
-    <div class="md:hidden p-2 border-b border-border/60">
+    <div class="md:hidden p-2 pt-[max(0.5rem,env(safe-area-inset-top))] pl-[max(0.5rem,env(safe-area-inset-left))] border-b border-border/60">
       <button
-        class="p-2 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
+        class="p-2.5 rounded-xl text-muted-foreground hover:text-foreground hover:bg-accent active:scale-95 transition-all"
         @click="emit('close')"
       >
         <svg
@@ -79,7 +79,7 @@ function formatDate(dateStr: string) {
             { key: 'wake', label: 'Scheduled' },
           ] as const)"
           :key="opt.key"
-          class="flex-1 rounded-md px-2 py-1.5 text-center transition-colors"
+          class="flex-1 rounded-md px-2 py-2 text-center transition-colors"
           :class="filter === opt.key
             ? 'bg-background text-foreground shadow-sm shadow-black/10'
             : 'text-foreground/50 hover:text-foreground/70'"
@@ -125,7 +125,7 @@ function formatDate(dateStr: string) {
           v-for="thread in filteredThreads"
           :key="thread.id"
           :to="`/${thread.id}`"
-          class="block mx-2 mb-0.5 px-3 py-2.5 rounded-xl text-sm transition-all truncate"
+          class="block mx-2 mb-0.5 px-3 py-3 rounded-xl text-sm transition-all truncate"
           :class="isActive(thread.id)
             ? 'bg-accent text-foreground shadow-sm shadow-black/5'
             : 'text-foreground/80 hover:bg-accent/70 hover:text-foreground'"
@@ -174,7 +174,7 @@ function formatDate(dateStr: string) {
     </nav>
 
     <!-- New Chat -->
-    <div class="p-3 border-t border-border/60">
+    <div class="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border/60">
       <button
         class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium
                bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
