@@ -19,18 +19,18 @@ function dismiss() {
   <Transition name="slide-up">
     <div
       v-if="needRefresh"
-      class="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg"
+      class="fixed bottom-[max(1rem,env(safe-area-inset-bottom))] left-1/2 -translate-x-1/2 z-50 flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3 shadow-lg"
       role="alert"
     >
       <span class="text-sm text-foreground">A new version is available.</span>
       <button
-        class="rounded-lg bg-primary px-3 py-1.5 text-xs font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+        class="rounded-lg bg-primary px-3 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 active:scale-95 transition-all"
         @click="update"
       >
         Update
       </button>
       <button
-        class="rounded-lg px-2 py-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        class="rounded-lg px-2 py-2 text-sm text-muted-foreground hover:text-foreground active:scale-95 transition-all"
         @click="dismiss"
       >
         Dismiss

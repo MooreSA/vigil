@@ -69,7 +69,7 @@ async function handleSend(text: string) {
     <!-- Empty state: centered input -->
     <div
       v-if="messages.length === 0 && !isStreaming"
-      class="flex-1 flex flex-col items-center justify-center px-4 empty-state-enter"
+      class="flex-1 flex flex-col items-center justify-center px-4 pb-[env(safe-area-inset-bottom)] empty-state-enter"
     >
       <div class="text-center mb-8">
         <div class="w-14 h-14 mx-auto mb-5 rounded-2xl bg-primary/10 flex items-center justify-center">
