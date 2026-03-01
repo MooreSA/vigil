@@ -148,3 +148,29 @@ After step 7: it wakes up and reaches out to you.
 | Agent loop latency (15-20s)           | SSE streaming, UI shows tool execution status                                                                                                                |
 | Agents SDK + OpenRouter compatibility | Spiked in step 2 -- works. `OpenAIChatCompletionsModel` with a custom `OpenAI` client pointed at OpenRouter streams correctly. No compatibility shim needed. |
 | Scope creep                           | Build order defines the MVP. Ship it, live with it, then decide.                                                                                             |
+
+---
+
+## Future Work
+
+### Sandboxed Code Execution
+
+Give the agent a `run_code` tool to execute LLM-generated code in an isolated environment. Docker containers are the preferred approach — already in the stack for CI.
+
+**Shape:**
+```
+src/tools/run-code.ts   → thin wrapper, calls service
+src/services/sandbox.ts → spawns container, streams stdout/stderr, enforces timeout
+```
+
+**Constraints:**
+- `docker run --rm --network=none --memory=128m --cpus=0.5 --read-only`
+- Configurable timeout (default 30s), kill on expiry
+- Returns stdout, stderr, exit code
+- Pre-built image with target runtimes
+
+**Open questions:**
+- Which languages? (Python, Node, bash, all three)
+- Network access — fully isolated or allow fetches?
+- Filesystem — read-only root + writable tmpfs for scratch?
+- Docker availability — is the host always running Docker, or does Vigil itself run inside a container?
