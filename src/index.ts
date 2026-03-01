@@ -21,6 +21,7 @@ import { createSkillRegistry } from './skills/index.js';
 import { createEventBus } from './events.js';
 import { registerThreadTitleHandler } from './handlers/thread-title.js';
 import { buildServer } from './api/server.js';
+import { runMigrations } from './db/migrator.js';
 
 setTracingDisabled(true);
 
@@ -120,6 +121,13 @@ const port = config.port;
 
 async function start() {
   try {
+    const results = await runMigrations(db);
+    for (const r of results) {
+      if (r.status === 'Success') {
+        logger.info({ migration: r.migrationName }, 'Migration applied');
+      }
+    }
+
     await server.listen({ port, host: '0.0.0.0' });
     schedulerService.start();
   } catch (err) {

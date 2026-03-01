@@ -1,9 +1,6 @@
 import 'dotenv/config';
-import {Migrator} from 'kysely';
-import {createDb} from './client.js';
-import * as m0001 from './migrations/0001_initial.js';
-import * as m0002 from "./migrations/0002_threads_job_run_id.js"
-import * as m0003 from "./migrations/0003_job_skills.js"
+import { createDb } from './client.js';
+import { runMigrations } from './migrator.js';
 
 async function main() {
     const connectionString = process.env.DATABASE_URL;
@@ -14,35 +11,22 @@ async function main() {
 
     const db = createDb(connectionString);
 
-    const migrator = new Migrator({
-        db,
-        provider: {
-            async getMigrations() {
-                return {
-                    '0001_initial': m0001,
-                    '0002_threads_job_run_id': m0002,
-                    '0003_job_skills': m0003,
-                };
-            },
-        },
-    });
+    try {
+        const results = await runMigrations(db);
 
-    const {error, results} = await migrator.migrateToLatest();
-
-    results?.forEach((it) => {
-        if (it.status === 'Success') {
-            console.log(`Migration "${it.migrationName}" applied successfully`);
-        } else if (it.status === 'Error') {
-            console.error(`Migration "${it.migrationName}" failed`);
+        for (const r of results) {
+            if (r.status === 'Success') {
+                console.log(`Migration "${r.migrationName}" applied successfully`);
+            } else if (r.status === 'Error') {
+                console.error(`Migration "${r.migrationName}" failed`);
+            }
         }
-    });
-
-    if (error) {
+    } catch (error) {
         console.error('Migration failed:', error);
         process.exit(1);
+    } finally {
+        await db.destroy();
     }
-
-    await db.destroy();
 }
 
 main();
