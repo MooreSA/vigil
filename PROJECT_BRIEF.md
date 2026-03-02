@@ -206,3 +206,83 @@ docker run --rm \
 - Wall-clock timeout: kill container if it stalls (configurable, default ~10min)
 - Network access: CC needs internet to reach the Anthropic API; restrict all other egress?
 - Review UX: how does the user inspect and approve the diff before merge?
+
+---
+
+### Multi-Worker Outbox Pattern
+
+Generalise the job system so processes other than the Node.js scheduler can consume and execute jobs — Python scripts, shell workers, Claude Code containers, etc. Postgres stays the queue; no message broker needed.
+
+**Shape:**
+- Add `worker_type` column to `jobs` (e.g. `'node'`, `'python'`, `'claude'`, `'shell'`)
+- The Node scheduler only claims runs where `worker_type = 'node'` (or null for backwards compat)
+- Other workers poll `job_runs` using the same claim/lock pattern, execute, write results back
+- Node.js handles stale run reclaim for all worker types (it's already doing this)
+
+**Schema changes needed:**
+- `jobs.worker_type TEXT` — identifies which worker handles this job
+- `jobs.payload JSONB` — richer input than a prompt string for non-agent workers
+- `job_runs.result JSONB` — generic result storage (currently only `thread_id` FK works for agent runs)
+
+**What's appealing:**
+- Workers are independently deployable — any process that can query Postgres qualifies
+- Existing job management API, tools, and UI work for all worker types
+- Natural home for Claude Code self-iteration jobs (`worker_type = 'claude'`)
+
+---
+
+## Future Work
+
+### Sandboxed Code Execution
+
+Give the agent a `run_code` tool to execute LLM-generated code in an isolated environment. Docker containers are the preferred approach — already in the stack for CI.
+
+**Shape:**
+```
+src/tools/run-code.ts   → thin wrapper, calls service
+src/services/sandbox.ts → spawns container, streams stdout/stderr, enforces timeout
+```
+
+**Constraints:**
+- `docker run --rm --network=none --memory=128m --cpus=0.5 --read-only`
+- Configurable timeout (default 30s), kill on expiry
+- Returns stdout, stderr, exit code
+- Pre-built image with target runtimes
+
+**Open questions:**
+- Which languages? (Python, Node, bash, all three)
+- Network access — fully isolated or allow fetches?
+- Filesystem — read-only root + writable tmpfs for scratch?
+- Docker availability — is the host already running Docker, or does Vigil itself run inside a container?
+
+---
+
+### Claude Code as a Self-Iteration Agent
+
+Spin up Claude Code (CC) instances inside Docker containers to let Vigil modify its own codebase — write features, fix bugs, run tests, commit — without direct host access.
+
+**Architecture:**
+- Vigil runs bare-metal (no Docker-in-Docker)
+- On task creation, Vigil creates a git worktree (`git worktree add`) from the target branch
+- Vigil spawns a Docker container with the worktree bind-mounted at `/workspace`
+- CC runs inside the container, makes edits, commits to the worktree
+- Container exits (`--rm`), Vigil surfaces the diff for human review
+- User approves → merge worktree branch to main
+
+**Container setup:**
+```
+docker run --rm \
+  -v /path/to/worktree:/workspace \
+  -e ANTHROPIC_API_KEY=... \
+  --memory=512m --cpus=1 \
+  vigil-cc-sandbox
+```
+
+**Image:** custom image with `claude` CLI + Node + dev toolchain pre-installed. Auth via `ANTHROPIC_API_KEY` env var (not OAuth — OAuth is for interactive human sessions, not headless automation).
+
+**Open questions:**
+- Store active container IDs in the DB so sessions can be monitored or killed from the UI
+- Stream container stdout/stderr back to a thread via SSE for visibility
+- Wall-clock timeout: kill container if it stalls (configurable, default ~10min)
+- Network access: CC needs internet to reach the Anthropic API; restrict all other egress?
+- Review UX: how does the user inspect and approve the diff before merge?
