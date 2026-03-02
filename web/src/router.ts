@@ -9,6 +9,11 @@ const router = createRouter({
       component: () => import('./components/ChatView.vue'),
     },
     {
+      path: '/system',
+      name: 'system',
+      component: () => import('./components/SystemView.vue'),
+    },
+    {
       path: '/:threadId',
       name: 'chat',
       component: () => import('./components/ChatView.vue'),

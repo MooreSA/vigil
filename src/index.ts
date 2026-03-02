@@ -16,6 +16,8 @@ import { AgentService } from './services/agent.js';
 import { JobService } from './services/jobs.js';
 import { NotificationService } from './services/notifications.js';
 import { SchedulerService } from './services/scheduler.js';
+import { LogBuffer } from './services/log-buffer.js';
+import { SystemService } from './services/system.js';
 import { createTools } from './tools/index.js';
 import { createSkillRegistry } from './skills/index.js';
 import { createEventBus } from './events.js';
@@ -26,7 +28,8 @@ import { runMigrations } from './db/migrator.js';
 setTracingDisabled(true);
 
 const config = loadConfig();
-const logger = createLogger({ level: config.logLevel, pretty: config.prettyLogs });
+const logBuffer = new LogBuffer(1000);
+const logger = createLogger({ level: config.logLevel, pretty: config.prettyLogs, logBuffer });
 
 const db = createDb(config.databaseUrl);
 const threadRepo = new ThreadRepository(db);
@@ -116,7 +119,9 @@ const schedulerService = new SchedulerService({
   appUrl: config.appUrl,
 });
 
-const server = buildServer({ logger, db, agentService, threadService, memoryService, eventBus, jobService });
+const systemService = new SystemService({ logBuffer });
+
+const server = buildServer({ logger, db, agentService, threadService, memoryService, eventBus, jobService, systemService });
 
 const port = config.port;
 

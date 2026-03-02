@@ -21,6 +21,42 @@ export interface SSEEvent {
   data: Record<string, unknown>;
 }
 
+export interface LogEntry {
+  level: number;
+  time: number;
+  msg: string;
+  [key: string]: unknown;
+}
+
+export interface SystemStats {
+  hostname: string;
+  platform: string;
+  arch: string;
+  uptime: number;
+  memory: {
+    total: number;
+    free: number;
+    used: number;
+    usagePercent: number;
+  };
+  cpu: {
+    cores: number;
+    model: string;
+    loadAvg: { '1m': number; '5m': number; '15m': number };
+  };
+  process: {
+    pid: number;
+    uptime: number;
+    memory: {
+      rss: number;
+      heapTotal: number;
+      heapUsed: number;
+      external: number;
+    };
+    nodeVersion: string;
+  };
+}
+
 export async function fetchThreads(): Promise<Thread[]> {
   const res = await fetch('/v1/threads');
   if (!res.ok) throw new Error(`Failed to fetch threads: ${res.status}`);
@@ -92,4 +128,25 @@ export async function* streamChat(
       yield { event, data };
     }
   }
+}
+
+export async function fetchSystemLogs(options?: {
+  level?: number;
+  limit?: number;
+  service?: string;
+}): Promise<LogEntry[]> {
+  const params = new URLSearchParams();
+  if (options?.level !== undefined) params.set('level', String(options.level));
+  if (options?.limit !== undefined) params.set('limit', String(options.limit));
+  if (options?.service) params.set('service', options.service);
+
+  const res = await fetch(`/v1/system/logs?${params}`);
+  if (!res.ok) throw new Error(`Failed to fetch logs: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchSystemStats(): Promise<SystemStats> {
+  const res = await fetch('/v1/system/stats');
+  if (!res.ok) throw new Error(`Failed to fetch stats: ${res.status}`);
+  return res.json();
 }
