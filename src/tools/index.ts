@@ -2,6 +2,7 @@ import type { Tool } from '@openai/agents';
 import type { MemoryService } from '../services/memory.js';
 import type { JobService } from '../services/jobs.js';
 import type { NotificationService } from '../services/notifications.js';
+import type { ThreadService } from '../services/threads.js';
 import type { Logger } from '../logger.js';
 import type { SkillRegistry } from '../skills/types.js';
 import { createRememberTool } from './remember.js';
@@ -11,17 +12,19 @@ import { createFetchUrlTool } from './fetch-url.js';
 import { createDirectionsTool } from './directions.js';
 import { createNotifyTool } from './notify.js';
 import { createListJobsTool, createCreateJobTool, createUpdateJobTool, createDeleteJobTool, createListSkillsTool } from './jobs.js';
+import { createArchiveThreadTool } from './threads.js';
 
 interface ToolsDeps {
   memoryService: MemoryService;
   jobService: JobService;
   notificationService: NotificationService;
+  threadService: ThreadService;
   skillRegistry: SkillRegistry;
   logger: Logger;
   googleMapsApiKey?: string;
 }
 
-export function createTools({ memoryService, jobService, notificationService, skillRegistry, logger, googleMapsApiKey }: ToolsDeps): Tool[] {
+export function createTools({ memoryService, jobService, notificationService, threadService, skillRegistry, logger, googleMapsApiKey }: ToolsDeps): Tool[] {
   const tools: Tool[] = [
     createRememberTool(memoryService, logger),
     createRecallTool(memoryService, logger),
@@ -33,6 +36,7 @@ export function createTools({ memoryService, jobService, notificationService, sk
     createUpdateJobTool(jobService, logger),
     createDeleteJobTool(jobService, logger),
     createListSkillsTool(skillRegistry, logger),
+    createArchiveThreadTool(threadService, logger),
   ];
 
   if (googleMapsApiKey) {

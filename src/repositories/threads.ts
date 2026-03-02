@@ -36,8 +36,39 @@ export class ThreadRepository {
       .selectFrom('threads')
       .selectAll()
       .where('deleted_at', 'is', null)
+      .where('archived_at', 'is', null)
       .orderBy('id', 'desc')
       .execute();
+  }
+
+  async findAllArchived() {
+    return this.db
+      .selectFrom('threads')
+      .selectAll()
+      .where('deleted_at', 'is', null)
+      .where('archived_at', 'is not', null)
+      .orderBy('id', 'desc')
+      .execute();
+  }
+
+  async archive(id: string) {
+    return this.db
+      .updateTable('threads')
+      .set({ archived_at: new Date() })
+      .where('id', '=', id)
+      .where('deleted_at', 'is', null)
+      .returningAll()
+      .executeTakeFirst();
+  }
+
+  async unarchive(id: string) {
+    return this.db
+      .updateTable('threads')
+      .set({ archived_at: null })
+      .where('id', '=', id)
+      .where('deleted_at', 'is', null)
+      .returningAll()
+      .executeTakeFirst();
   }
 
   async updateTitle(id: string, title: string) {

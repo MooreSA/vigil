@@ -8,6 +8,9 @@ function mockThreadRepo(): ThreadRepository {
     create: vi.fn(),
     findById: vi.fn(),
     findAll: vi.fn(),
+    findAllArchived: vi.fn(),
+    archive: vi.fn(),
+    unarchive: vi.fn(),
     softDelete: vi.fn(),
   } as unknown as ThreadRepository;
 }
@@ -100,6 +103,58 @@ describe('ThreadService', () => {
 
       expect(threadRepo.findAll).toHaveBeenCalled();
       expect(result).toBe(rows);
+    });
+  });
+
+  describe('listArchived', () => {
+    it('delegates to threadRepo.findAllArchived', async () => {
+      const rows = [{ id: '5', archived_at: new Date() }];
+      vi.mocked(threadRepo.findAllArchived).mockResolvedValue(rows as any);
+
+      const result = await service.listArchived();
+
+      expect(threadRepo.findAllArchived).toHaveBeenCalled();
+      expect(result).toBe(rows);
+    });
+  });
+
+  describe('archive', () => {
+    it('delegates to threadRepo.archive', async () => {
+      const row = { id: '3', archived_at: new Date() };
+      vi.mocked(threadRepo.archive).mockResolvedValue(row as any);
+
+      const result = await service.archive('3');
+
+      expect(threadRepo.archive).toHaveBeenCalledWith('3');
+      expect(result).toBe(row);
+    });
+
+    it('returns undefined when thread not found', async () => {
+      vi.mocked(threadRepo.archive).mockResolvedValue(undefined);
+
+      const result = await service.archive('999');
+
+      expect(result).toBeUndefined();
+    });
+  });
+
+  describe('unarchive', () => {
+    it('delegates to threadRepo.unarchive', async () => {
+      const row = { id: '3', archived_at: null };
+      vi.mocked(threadRepo.unarchive).mockResolvedValue(row as any);
+
+      const result = await service.unarchive('3');
+
+      expect(threadRepo.unarchive).toHaveBeenCalledWith('3');
+      expect(result).toBe(row);
+    });
+
+    it('returns undefined when thread not found', async () => {
+      vi.mocked(threadRepo.unarchive).mockResolvedValue(undefined);
+
+      const result = await service.unarchive('999');
+
+      expect(result).toBeUndefined();
     });
   });
 

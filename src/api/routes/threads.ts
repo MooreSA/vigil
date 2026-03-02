@@ -15,6 +15,28 @@ export async function threadsRoute(
     return threadService.list();
   });
 
+  app.get('/threads/archived', async () => {
+    return threadService.listArchived();
+  });
+
+  app.post<{ Params: { id: string } }>('/threads/:id/archive', async (request, reply) => {
+    const { id } = request.params;
+    const thread = await threadService.archive(id);
+    if (!thread) {
+      return reply.code(404).send({ error: 'Thread not found' });
+    }
+    return thread;
+  });
+
+  app.post<{ Params: { id: string } }>('/threads/:id/unarchive', async (request, reply) => {
+    const { id } = request.params;
+    const thread = await threadService.unarchive(id);
+    if (!thread) {
+      return reply.code(404).send({ error: 'Thread not found' });
+    }
+    return thread;
+  });
+
   app.get<{ Params: { id: string } }>('/threads/:id', async (request, reply) => {
     const { id } = request.params;
     const thread = await threadService.findById(id);

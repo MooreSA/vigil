@@ -23,5 +23,9 @@ export function useThreads() {
     }
   }
 
-  return { threads, loading, load, addOrUpdate };
+  function remove(id: string) {
+    threads.value = threads.value.filter((t) => t.id !== id);
+  }
+
+  return { threads, loading, load, addOrUpdate, remove };
 }

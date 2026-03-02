@@ -92,6 +92,62 @@ describe('ThreadRepository', () => {
     });
   });
 
+  describe('archive / unarchive / findAllArchived', () => {
+    it('archive sets archived_at', async () => {
+      const t = await repo.create({ title: 'To Archive' });
+      const archived = await repo.archive(t.id);
+
+      expect(archived).toBeDefined();
+      expect(archived!.archived_at).toBeInstanceOf(Date);
+    });
+
+    it('unarchive clears archived_at', async () => {
+      const t = await repo.create();
+      await repo.archive(t.id);
+      const restored = await repo.unarchive(t.id);
+
+      expect(restored).toBeDefined();
+      expect(restored!.archived_at).toBeNull();
+    });
+
+    it('archive returns undefined for non-existent id', async () => {
+      const result = await repo.archive('999999');
+      expect(result).toBeUndefined();
+    });
+
+    it('findAll excludes archived threads', async () => {
+      const t1 = await repo.create({ title: 'Active' });
+      const t2 = await repo.create({ title: 'Archived' });
+      await repo.archive(t2.id);
+
+      const all = await repo.findAll();
+      expect(all.map((t) => t.id)).toContain(t1.id);
+      expect(all.map((t) => t.id)).not.toContain(t2.id);
+    });
+
+    it('findAllArchived returns only archived non-deleted threads', async () => {
+      await repo.create({ title: 'Active' });
+      const t2 = await repo.create({ title: 'Archived' });
+      const t3 = await repo.create({ title: 'Also Archived' });
+      await repo.archive(t2.id);
+      await repo.archive(t3.id);
+
+      const archived = await repo.findAllArchived();
+      expect(archived).toHaveLength(2);
+      expect(archived.map((t) => t.id)).toContain(t2.id);
+      expect(archived.map((t) => t.id)).toContain(t3.id);
+    });
+
+    it('findAllArchived excludes soft-deleted threads', async () => {
+      const t = await repo.create({ title: 'Archived then Deleted' });
+      await repo.archive(t.id);
+      await repo.softDelete(t.id);
+
+      const archived = await repo.findAllArchived();
+      expect(archived.map((a) => a.id)).not.toContain(t.id);
+    });
+  });
+
   describe('softDelete', () => {
     it('sets deleted_at on the thread', async () => {
       const created = await repo.create();

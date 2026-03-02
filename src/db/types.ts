@@ -5,6 +5,7 @@ export interface ThreadsTable {
   title: string | null;
   source: 'user' | 'wake';
   job_run_id: string | null;
+  archived_at: ColumnType<Date | null, Date | null, Date | null>;
   deleted_at: ColumnType<Date | null, Date | string | null, Date | string | null>;
   created_at: ColumnType<Date, never, never>;
   updated_at: ColumnType<Date, never, never>;

@@ -3,6 +3,7 @@ export interface Thread {
   title: string | null;
   source: string;
   job_run_id: string | null;
+  archived_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -24,6 +25,24 @@ export interface SSEEvent {
 export async function fetchThreads(): Promise<Thread[]> {
   const res = await fetch('/v1/threads');
   if (!res.ok) throw new Error(`Failed to fetch threads: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchArchivedThreads(): Promise<Thread[]> {
+  const res = await fetch('/v1/threads/archived');
+  if (!res.ok) throw new Error(`Failed to fetch archived threads: ${res.status}`);
+  return res.json();
+}
+
+export async function archiveThread(id: string): Promise<Thread> {
+  const res = await fetch(`/v1/threads/${id}/archive`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Failed to archive thread: ${res.status}`);
+  return res.json();
+}
+
+export async function unarchiveThread(id: string): Promise<Thread> {
+  const res = await fetch(`/v1/threads/${id}/unarchive`, { method: 'POST' });
+  if (!res.ok) throw new Error(`Failed to unarchive thread: ${res.status}`);
   return res.json();
 }
 

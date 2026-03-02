@@ -79,6 +79,7 @@ const tools = createTools({
   memoryService,
   jobService,
   notificationService,
+  threadService,
   skillRegistry,
   logger,
   googleMapsApiKey: config.googleMapsApiKey,

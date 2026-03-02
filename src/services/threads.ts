@@ -35,6 +35,18 @@ export class ThreadService {
     return this.threadRepo.findAll();
   }
 
+  async listArchived() {
+    return this.threadRepo.findAllArchived();
+  }
+
+  async archive(id: string) {
+    return this.threadRepo.archive(id);
+  }
+
+  async unarchive(id: string) {
+    return this.threadRepo.unarchive(id);
+  }
+
   async getMessages(threadId: string) {
     return this.messageRepo.findByThreadId(threadId);
   }

@@ -2,15 +2,19 @@
 import { ref, computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useThreads } from '../composables/useThreads';
+import { archiveThread } from '../lib/api';
+import ConfirmDialog from './ConfirmDialog.vue';
 
 type Filter = 'all' | 'user' | 'wake';
 
 const emit = defineEmits<{ 'new-chat': []; 'thread-select': []; 'close': [] }>();
 
 const route = useRoute();
-const { threads } = useThreads();
+const { threads, remove } = useThreads();
 const filter = ref<Filter>('all');
 const search = ref('');
+const archiveDialogOpen = ref(false);
+const archiveTargetId = ref<string | null>(null);
 
 const filteredThreads = computed(() => {
   let list = threads.value;
@@ -42,6 +46,19 @@ function formatDate(dateStr: string) {
   if (days === 1) return 'Yesterday';
   if (days < 7) return `${days}d ago`;
   return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+function promptArchive(id: string) {
+  archiveTargetId.value = id;
+  archiveDialogOpen.value = true;
+}
+
+async function onArchiveConfirmed() {
+  if (!archiveTargetId.value) return;
+  await archiveThread(archiveTargetId.value);
+  remove(archiveTargetId.value);
+  archiveDialogOpen.value = false;
+  archiveTargetId.value = null;
 }
 </script>
 
@@ -121,48 +138,71 @@ function formatDate(dateStr: string) {
         enter-from-class="opacity-0 -translate-y-2"
         move-class="transition-transform duration-300 ease-out"
       >
-        <router-link
+        <div
           v-for="thread in filteredThreads"
           :key="thread.id"
-          :to="`/${thread.id}`"
-          class="block mx-2 mb-0.5 px-3 py-3 rounded-xl text-sm transition-all truncate"
-          :class="isActive(thread.id)
-            ? 'bg-accent text-foreground shadow-sm shadow-black/5'
-            : 'text-foreground/80 hover:bg-accent/70 hover:text-foreground'"
-          @click="emit('thread-select')"
+          class="group relative mx-2 mb-0.5"
         >
-          <Transition
-            mode="out-in"
-            enter-active-class="transition-opacity duration-200 ease-out"
-            leave-active-class="transition-opacity duration-150 ease-in"
-            enter-from-class="opacity-0"
-            leave-to-class="opacity-0"
+          <router-link
+            :to="`/${thread.id}`"
+            class="block px-3 py-3 rounded-xl text-sm transition-all truncate"
+            :class="isActive(thread.id)
+              ? 'bg-accent text-foreground shadow-sm shadow-black/5'
+              : 'text-foreground/80 hover:bg-accent/70 hover:text-foreground'"
+            @click="emit('thread-select')"
           >
-            <div
-              :key="threadTitle(thread)"
-              class="truncate flex items-center gap-1.5"
+            <Transition
+              mode="out-in"
+              enter-active-class="transition-opacity duration-200 ease-out"
+              leave-active-class="transition-opacity duration-150 ease-in"
+              enter-from-class="opacity-0"
+              leave-to-class="opacity-0"
             >
-              <svg
-                v-if="thread.source === 'wake'"
-                class="w-3.5 h-3.5 shrink-0 text-muted-foreground"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
+              <div
+                :key="threadTitle(thread)"
+                class="truncate flex items-center gap-1.5 pr-6"
               >
-                <path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              <span class="truncate">{{ threadTitle(thread) }}</span>
+                <svg
+                  v-if="thread.source === 'wake'"
+                  class="w-3.5 h-3.5 shrink-0 text-muted-foreground"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+                <span class="truncate">{{ threadTitle(thread) }}</span>
+              </div>
+            </Transition>
+            <div class="text-xs text-muted-foreground/60 mt-0.5">
+              {{ formatDate(thread.updated_at) }}
             </div>
-          </Transition>
-          <div class="text-xs text-muted-foreground/60 mt-0.5">
-            {{ formatDate(thread.updated_at) }}
-          </div>
-        </router-link>
+          </router-link>
+          <button
+            class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 rounded-lg text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground hover:bg-accent transition-all"
+            title="Archive"
+            @click.prevent="promptArchive(thread.id)"
+          >
+            <svg
+              class="w-3.5 h-3.5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z"
+              />
+            </svg>
+          </button>
+        </div>
       </TransitionGroup>
 
       <div
@@ -197,4 +237,12 @@ function formatDate(dateStr: string) {
       </button>
     </div>
   </aside>
+
+  <ConfirmDialog
+    v-model:open="archiveDialogOpen"
+    title="Archive this thread?"
+    description="It will be hidden from your thread list. You can restore it later."
+    confirm-label="Archive"
+    @confirm="onArchiveConfirmed"
+  />
 </template>
