@@ -20,7 +20,10 @@ const emit = defineEmits<{ 'update:open': [value: boolean]; confirm: [] }>();
 </script>
 
 <template>
-  <DialogRoot :open="open" @update:open="emit('update:open', $event)">
+  <DialogRoot
+    :open="open"
+    @update:open="emit('update:open', $event)"
+  >
     <DialogPortal>
       <DialogOverlay class="fixed inset-0 z-50 bg-black/40 data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0" />
       <DialogContent
@@ -30,7 +33,10 @@ const emit = defineEmits<{ 'update:open': [value: boolean]; confirm: [] }>();
         <DialogTitle class="text-sm font-semibold text-foreground mb-1">
           {{ title }}
         </DialogTitle>
-        <DialogDescription v-if="description" class="text-sm text-muted-foreground mb-4">
+        <DialogDescription
+          v-if="description"
+          class="text-sm text-muted-foreground mb-4"
+        >
           {{ description }}
         </DialogDescription>
         <div class="flex justify-end gap-2 mt-4">

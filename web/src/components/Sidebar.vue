@@ -236,27 +236,27 @@ async function onArchiveConfirmed() {
       </router-link>
       <!-- New Chat -->
       <div class="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border/60">
-      <button
-        class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium
-               bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
-        @click="$emit('new-chat')"
-      >
-        <svg
-          class="w-4 h-4"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          stroke-width="2"
+        <button
+          class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium
+                 bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
+          @click="$emit('new-chat')"
         >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            d="M12 4.5v15m7.5-7.5h-15"
-          />
-        </svg>
-        New Chat
-      </button>
-    </div>
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M12 4.5v15m7.5-7.5h-15"
+            />
+          </svg>
+          New Chat
+        </button>
+      </div>
     </div>
   </aside>
 

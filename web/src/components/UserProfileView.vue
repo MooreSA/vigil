@@ -16,7 +16,7 @@ onMounted(async () => {
     const profile = await fetchUserProfile();
     content.value = profile.content;
     savedContent.value = profile.content;
-  } catch (e) {
+  } catch (_e) {
     error.value = 'Failed to load profile';
   } finally {
     loading.value = false;
@@ -33,8 +33,8 @@ async function handleSave() {
     const result = await updateUserProfile(content.value);
     savedContent.value = result.content;
     saved.value = true;
-    setTimeout(() => { saved.value = false; }, 2000);
-  } catch (e) {
+    window.setTimeout(() => { saved.value = false; }, 2000);
+  } catch (_e) {
     error.value = 'Failed to save profile';
   } finally {
     saving.value = false;
@@ -55,7 +55,10 @@ async function handleSave() {
           </p>
         </div>
 
-        <div v-if="loading" class="text-sm text-muted-foreground py-8 text-center">
+        <div
+          v-if="loading"
+          class="text-sm text-muted-foreground py-8 text-center"
+        >
           Loading...
         </div>
 
@@ -91,7 +94,10 @@ Example:
               enter-from-class="opacity-0"
               leave-to-class="opacity-0"
             >
-              <span v-if="saved" class="text-sm text-green-500">Saved</span>
+              <span
+                v-if="saved"
+                class="text-sm text-green-500"
+              >Saved</span>
             </Transition>
 
             <Transition
@@ -100,7 +106,10 @@ Example:
               enter-from-class="opacity-0"
               leave-to-class="opacity-0"
             >
-              <span v-if="error" class="text-sm text-red-500">{{ error }}</span>
+              <span
+                v-if="error"
+                class="text-sm text-red-500"
+              >{{ error }}</span>
             </Transition>
           </div>
         </template>

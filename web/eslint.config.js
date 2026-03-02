@@ -14,6 +14,7 @@ export default tseslint.config(
         HTMLTextAreaElement: "readonly",
         KeyboardEvent: "readonly",
         ScrollBehavior: "readonly",
+        window: "readonly",
       },
       parserOptions: {
         parser: tseslint.parser,
