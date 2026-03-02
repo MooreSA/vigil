@@ -221,5 +221,6 @@ function formatDate(dateStr: string) {
         New Chat
       </button>
     </div>
+    </div>
   </aside>
 </template>
