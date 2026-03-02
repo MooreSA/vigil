@@ -10,6 +10,7 @@ const createBodySchema = z.object({
   name: z.string().min(1),
   schedule: z.string().min(1),
   prompt: z.string().min(1),
+  notify: z.boolean().optional(),
   enabled: z.boolean().optional(),
   max_retries: z.number().int().min(0).optional(),
 });
@@ -18,6 +19,7 @@ const updateBodySchema = z.object({
   name: z.string().min(1).optional(),
   schedule: z.string().min(1).optional(),
   prompt: z.string().min(1).optional(),
+  notify: z.boolean().optional(),
   enabled: z.boolean().optional(),
   max_retries: z.number().int().min(0).optional(),
 });

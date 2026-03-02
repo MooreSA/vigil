@@ -70,6 +70,7 @@ CREATE TABLE jobs (
     name          TEXT NOT NULL,
     schedule      TEXT,
     prompt        TEXT NOT NULL,
+    notify        BOOLEAN NOT NULL DEFAULT TRUE,
     enabled       BOOLEAN NOT NULL DEFAULT TRUE,
     max_retries   INT NOT NULL DEFAULT 3,
     next_run_at   TIMESTAMPTZ NOT NULL,

@@ -154,13 +154,15 @@ export class SchedulerService {
 
           this.logger.info({ runId: claimed.id, threadId: thread.id, jobName: job.name }, 'Job run completed');
 
-          const clickUrl = this.appUrl ? `${this.appUrl}/threads/${thread.id}` : undefined;
-          await this.notificationService.notify({
-            title: `Job completed: ${job.name}`,
-            body: (job.prompt ?? '').slice(0, 200),
-            tag: 'white_check_mark',
-            clickUrl,
-          });
+          if (job.notify) {
+            const clickUrl = this.appUrl ? `${this.appUrl}/threads/${thread.id}` : undefined;
+            await this.notificationService.notify({
+              title: `Job completed: ${job.name}`,
+              body: (job.prompt ?? '').slice(0, 200),
+              tag: 'white_check_mark',
+              clickUrl,
+            });
+          }
         }
       } catch (err) {
         clearInterval(lockRefresh);
@@ -170,7 +172,7 @@ export class SchedulerService {
         this.logger.error({ err, runId: claimed.id, jobId: job.id }, 'Job run failed');
 
         // Send failure notification if retries exhausted
-        if (claimed.retry_count + 1 >= job.max_retries) {
+        if (job.notify && claimed.retry_count + 1 >= job.max_retries) {
           await this.notificationService.notify({
             title: `Job failed: ${job.name}`,
             body: errorMsg.slice(0, 200),

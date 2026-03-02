@@ -39,12 +39,13 @@ export function createCreateJobTool(jobService: JobService, logger: Logger) {
       schedule: z.string().nullable().optional().describe('Cron expression for recurring jobs (e.g. "0 8 * * *" for daily at 8am). Provide either schedule or run_at, not both.'),
       run_at: z.string().nullable().optional().describe('ISO 8601 timestamp for one-shot jobs. The job fires once at this time and is then disabled. Provide either run_at or schedule, not both.'),
       prompt: z.string().nullable().optional().describe('The prompt/instruction the agent will execute on each run. Required for prompt jobs, omit for skill jobs.'),
+      notify: z.boolean().nullable().optional().describe('Whether to send a push notification when this job completes. Defaults to true. Set to false for jobs whose prompts already notify the user.'),
       enabled: z.boolean().nullable().optional().describe('Whether the job is active. Defaults to true.'),
       max_retries: z.number().int().min(0).max(10).nullable().optional().describe('Max retry attempts on failure. Defaults to 3.'),
       skill_name: z.string().nullable().optional().describe('Name of the skill to run instead of a prompt. Use list_skills to see available skills.'),
       skill_config: z.record(z.string(), z.unknown()).nullable().optional().describe('Configuration object for the skill. Schema depends on the skill — use list_skills to see required fields.'),
     }),
-    execute: async ({ name, schedule, run_at, prompt, enabled, max_retries, skill_name, skill_config }) => {
+    execute: async ({ name, schedule, run_at, prompt, notify, enabled, max_retries, skill_name, skill_config }) => {
       logger.info({ tool: 'create_job', name, schedule, run_at, skill_name }, 'Tool called: create_job');
       try {
         const job = await jobService.create({
@@ -52,6 +53,7 @@ export function createCreateJobTool(jobService: JobService, logger: Logger) {
           schedule: schedule ?? undefined,
           run_at: run_at ?? undefined,
           prompt: prompt ?? undefined,
+          notify: notify ?? undefined,
           enabled: enabled ?? undefined,
           max_retries: max_retries ?? undefined,
           skill_name: skill_name ?? undefined,
@@ -79,6 +81,7 @@ export function createUpdateJobTool(jobService: JobService, logger: Logger) {
       name: z.string().nullable().optional().describe('New name for the job.'),
       schedule: z.string().nullable().optional().describe('New cron expression.'),
       prompt: z.string().nullable().optional().describe('New prompt/instruction.'),
+      notify: z.boolean().nullable().optional().describe('Whether to send a push notification when this job completes.'),
       enabled: z.boolean().nullable().optional().describe('Enable or disable the job.'),
       max_retries: z.number().int().min(0).max(10).nullable().optional().describe('New max retry count.'),
       skill_name: z.string().nullable().optional().describe('Name of the skill to run.'),

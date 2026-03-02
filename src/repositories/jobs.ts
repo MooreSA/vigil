@@ -5,6 +5,7 @@ export interface CreateJobInput {
   name: string;
   schedule?: string | null;
   prompt?: string | null;
+  notify?: boolean;
   enabled?: boolean;
   max_retries?: number;
   skill_name?: string | null;
@@ -16,6 +17,7 @@ export interface UpdateJobInput {
   name?: string;
   schedule?: string | null;
   prompt?: string | null;
+  notify?: boolean;
   enabled?: boolean;
   max_retries?: number;
   skill_name?: string | null;
@@ -34,6 +36,7 @@ export class JobRepository {
         name: input.name,
         schedule: input.schedule ?? null,
         prompt: input.prompt ?? null,
+        notify: input.notify ?? true,
         enabled: input.enabled ?? true,
         max_retries: input.max_retries ?? 3,
         skill_name: input.skill_name ?? null,
