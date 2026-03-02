@@ -9,6 +9,7 @@ import { MessageRepository } from './repositories/messages.js';
 import { MemoryRepository } from './repositories/memory.js';
 import { JobRepository } from './repositories/jobs.js';
 import { JobRunRepository } from './repositories/job-runs.js';
+import { UserProfileRepository } from './repositories/user-profile.js';
 import { ThreadService } from './services/threads.js';
 import { EmbeddingService } from './services/embedding.js';
 import { MemoryService } from './services/memory.js';
@@ -16,6 +17,7 @@ import { AgentService } from './services/agent.js';
 import { JobService } from './services/jobs.js';
 import { NotificationService } from './services/notifications.js';
 import { SchedulerService } from './services/scheduler.js';
+import { UserProfileService } from './services/user-profile.js';
 import { createTools } from './tools/index.js';
 import { createSkillRegistry } from './skills/index.js';
 import { createEventBus } from './events.js';
@@ -34,6 +36,7 @@ const messageRepo = new MessageRepository(db);
 const memoryRepo = new MemoryRepository(db);
 const jobRepo = new JobRepository(db);
 const jobRunRepo = new JobRunRepository(db);
+const userProfileRepo = new UserProfileRepository(db);
 
 const threadService = new ThreadService({ threadRepo, messageRepo });
 
@@ -55,6 +58,8 @@ const memoryService = new MemoryService({
   embeddingService,
   logger: logger.child({ service: 'memory' }),
 });
+
+const userProfileService = new UserProfileService({ userProfileRepo });
 
 const notificationService = new NotificationService({
   url: config.ntfyUrl,
@@ -101,6 +106,7 @@ const agentService = new AgentService({
   eventBus,
   threadService,
   memoryService,
+  userProfileService,
   logger: logger.child({ service: 'agent' }),
   maxIterations: config.agentMaxIterations,
   tools,
@@ -117,7 +123,7 @@ const schedulerService = new SchedulerService({
   appUrl: config.appUrl,
 });
 
-const server = buildServer({ logger, db, agentService, threadService, memoryService, eventBus, jobService });
+const server = buildServer({ logger, db, agentService, threadService, memoryService, userProfileService, eventBus, jobService });
 
 const port = config.port;
 

@@ -6,6 +6,7 @@ import * as m0003 from './migrations/0003_job_skills.js';
 import * as m0004 from './migrations/0004_nullable_job_schedule.js';
 import * as m0005 from './migrations/0005_job_notify.js';
 import * as m0006 from './migrations/0006_thread_archive.js';
+import * as m0007 from './migrations/0007_user_profile.js';
 
 export interface MigrationResult {
   migrationName: string;
@@ -24,6 +25,7 @@ export async function runMigrations(db: Kysely<DB>): Promise<MigrationResult[]> 
           '0004_nullable_job_schedule': m0004,
           '0005_job_notify': m0005,
           '0006_thread_archive': m0006,
+          '0007_user_profile': m0007,
         };
       },
     },

@@ -209,8 +209,33 @@ async function onArchiveConfirmed() {
       </div>
     </nav>
 
-    <!-- New Chat -->
-    <div class="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border/60">
+    <!-- Actions -->
+    <div class="p-3 border-t border-border/60 space-y-1.5">
+      <router-link
+        to="/profile"
+        class="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm transition-all"
+        :class="$route.name === 'profile'
+          ? 'bg-accent text-foreground'
+          : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'"
+        @click="emit('thread-select')"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z"
+          />
+        </svg>
+        Profile
+      </router-link>
+      <!-- New Chat -->
+      <div class="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border/60">
       <button
         class="flex items-center justify-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm font-medium
                bg-primary text-primary-foreground hover:bg-primary/90 active:scale-95 shadow-sm shadow-primary/20 transition-all"
@@ -231,6 +256,7 @@ async function onArchiveConfirmed() {
         </svg>
         New Chat
       </button>
+    </div>
     </div>
   </aside>
 
