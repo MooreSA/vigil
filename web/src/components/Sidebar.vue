@@ -5,22 +5,19 @@ import { useThreads } from '../composables/useThreads';
 import { archiveThread } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog.vue';
 
-type Filter = 'all' | 'user' | 'wake';
+type Filter = 'user' | 'wake';
 
 const emit = defineEmits<{ 'new-chat': []; 'thread-select': []; 'close': [] }>();
 
 const route = useRoute();
 const { threads, remove } = useThreads();
-const filter = ref<Filter>('all');
+const filter = ref<Filter>('user');
 const search = ref('');
 const archiveDialogOpen = ref(false);
 const archiveTargetId = ref<string | null>(null);
 
 const filteredThreads = computed(() => {
-  let list = threads.value;
-  if (filter.value !== 'all') {
-    list = list.filter((t) => t.source === filter.value);
-  }
+  let list = threads.value.filter((t) => t.source === filter.value);
   const q = search.value.trim().toLowerCase();
   if (q) {
     list = list.filter((t) => (t.title || '').toLowerCase().includes(q));
@@ -91,7 +88,6 @@ async function onArchiveConfirmed() {
       <div class="flex rounded-xl bg-muted/70 p-0.5 text-sm font-medium">
         <button
           v-for="opt in ([
-            { key: 'all', label: 'All' },
             { key: 'user', label: 'Chats' },
             { key: 'wake', label: 'Scheduled' },
           ] as const)"
@@ -209,7 +205,7 @@ async function onArchiveConfirmed() {
         v-if="filteredThreads.length === 0"
         class="px-5 py-8 text-center text-muted-foreground text-sm"
       >
-        {{ search.trim() ? 'No matching threads' : filter === 'all' ? 'No conversations yet' : 'No threads found' }}
+        {{ search.trim() ? 'No matching threads' : filter === 'user' ? 'No conversations yet' : 'No scheduled threads' }}
       </div>
     </nav>
 
