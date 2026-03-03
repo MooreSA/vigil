@@ -12,7 +12,7 @@ interface JobsRouteDeps {
 const createBodySchema = z.object({
   name: z.string().min(1),
   schedule: z.string().min(1).nullable().optional(),
-  run_at: z.string().nullable().optional(),
+  run_at: z.string().optional(),
   prompt: z.string().min(1).nullable().optional(),
   notify: z.boolean().optional(),
   enabled: z.boolean().optional(),
