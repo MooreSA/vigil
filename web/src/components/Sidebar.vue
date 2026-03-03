@@ -234,6 +234,29 @@ async function onArchiveConfirmed() {
         </svg>
         Profile
       </router-link>
+      <router-link
+        to="/jobs"
+        class="flex items-center gap-2 w-full px-3 py-2 rounded-xl text-sm transition-all"
+        :class="$route.name === 'jobs'
+          ? 'bg-accent text-foreground'
+          : 'text-muted-foreground hover:bg-accent/70 hover:text-foreground'"
+        @click="emit('thread-select')"
+      >
+        <svg
+          class="w-4 h-4"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"
+          />
+        </svg>
+        Jobs
+      </router-link>
       <!-- New Chat -->
       <div class="p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-border/60">
         <button

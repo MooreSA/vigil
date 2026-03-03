@@ -14,6 +14,11 @@ const router = createRouter({
       component: () => import('./components/UserProfileView.vue'),
     },
     {
+      path: '/jobs',
+      name: 'jobs',
+      component: () => import('./components/JobsView.vue'),
+    },
+    {
       path: '/:threadId',
       name: 'chat',
       component: () => import('./components/ChatView.vue'),

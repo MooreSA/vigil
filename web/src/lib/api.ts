@@ -68,6 +68,74 @@ export async function updateUserProfile(content: string): Promise<{ content: str
   return res.json();
 }
 
+// Jobs
+
+export interface Job {
+  id: string;
+  name: string;
+  schedule: string | null;
+  prompt: string | null;
+  enabled: boolean;
+  max_retries: number;
+  skill_name: string | null;
+  skill_config: Record<string, unknown> | null;
+  notify: boolean;
+  next_run_at: string | null;
+  last_run_at: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobRun {
+  id: string;
+  job_id: string;
+  status: 'pending' | 'running' | 'completed' | 'failed';
+  scheduled_for: string;
+  started_at: string | null;
+  completed_at: string | null;
+  error: string | null;
+  retry_count: number;
+  thread_id: string | null;
+  created_at: string;
+}
+
+export async function fetchJobs(): Promise<Job[]> {
+  const res = await fetch('/v1/jobs');
+  if (!res.ok) throw new Error(`Failed to fetch jobs: ${res.status}`);
+  return res.json();
+}
+
+export async function fetchJob(id: string): Promise<{ job: Job; runs: JobRun[] }> {
+  const res = await fetch(`/v1/jobs/${id}`);
+  if (!res.ok) throw new Error(`Failed to fetch job: ${res.status}`);
+  return res.json();
+}
+
+export async function createJob(data: Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries'>>): Promise<Job> {
+  const res = await fetch('/v1/jobs', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to create job: ${res.status}`);
+  return res.json();
+}
+
+export async function updateJob(id: string, data: Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries'>>): Promise<Job> {
+  const res = await fetch(`/v1/jobs/${id}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  });
+  if (!res.ok) throw new Error(`Failed to update job: ${res.status}`);
+  return res.json();
+}
+
+export async function deleteJob(id: string): Promise<void> {
+  const res = await fetch(`/v1/jobs/${id}`, { method: 'DELETE' });
+  if (!res.ok) throw new Error(`Failed to delete job: ${res.status}`);
+}
+
 export async function* streamChat(
   threadId: string | null,
   message: string,
