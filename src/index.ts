@@ -4,6 +4,7 @@ import { OpenAIChatCompletionsModel, setTracingDisabled } from '@openai/agents';
 import { loadConfig } from './config.js';
 import { createDb } from './db/client.js';
 import { createLogger } from './logger.js';
+import { LogBuffer } from './services/log-buffer.js';
 import { ThreadRepository } from './repositories/threads.js';
 import { MessageRepository } from './repositories/messages.js';
 import { MemoryRepository } from './repositories/memory.js';
@@ -28,7 +29,8 @@ import { runMigrations } from './db/migrator.js';
 setTracingDisabled(true);
 
 const config = loadConfig();
-const logger = createLogger({ level: config.logLevel, pretty: config.prettyLogs });
+const logBuffer = new LogBuffer(1000);
+const logger = await createLogger({ level: config.logLevel, pretty: config.prettyLogs, logBuffer });
 
 const db = createDb(config.databaseUrl);
 const threadRepo = new ThreadRepository(db);
@@ -86,6 +88,7 @@ const tools = createTools({
   notificationService,
   threadService,
   skillRegistry,
+  logBuffer,
   logger,
   googleMapsApiKey: config.googleMapsApiKey,
 });

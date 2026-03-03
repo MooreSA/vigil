@@ -3,6 +3,7 @@ import type { MemoryService } from '../services/memory.js';
 import type { JobService } from '../services/jobs.js';
 import type { NotificationService } from '../services/notifications.js';
 import type { ThreadService } from '../services/threads.js';
+import type { LogBuffer } from '../services/log-buffer.js';
 import type { Logger } from '../logger.js';
 import type { SkillRegistry } from '../skills/types.js';
 import { createRememberTool } from './remember.js';
@@ -14,6 +15,7 @@ import { createNotifyTool } from './notify.js';
 import { createListJobsTool, createCreateJobTool, createUpdateJobTool, createDeleteJobTool, createListSkillsTool } from './jobs.js';
 import { createToggleJobTool } from './toggle-job.js';
 import { createArchiveThreadTool } from './threads.js';
+import { createSearchLogsTool } from './search-logs.js';
 
 interface ToolsDeps {
   memoryService: MemoryService;
@@ -21,11 +23,12 @@ interface ToolsDeps {
   notificationService: NotificationService;
   threadService: ThreadService;
   skillRegistry: SkillRegistry;
+  logBuffer: LogBuffer;
   logger: Logger;
   googleMapsApiKey?: string;
 }
 
-export function createTools({ memoryService, jobService, notificationService, threadService, skillRegistry, logger, googleMapsApiKey }: ToolsDeps): Tool[] {
+export function createTools({ memoryService, jobService, notificationService, threadService, skillRegistry, logBuffer, logger, googleMapsApiKey }: ToolsDeps): Tool[] {
   const tools: Tool[] = [
     createRememberTool(memoryService, logger),
     createRecallTool(memoryService, logger),
@@ -39,6 +42,7 @@ export function createTools({ memoryService, jobService, notificationService, th
     createToggleJobTool(jobService, logger),
     createListSkillsTool(skillRegistry, logger),
     createArchiveThreadTool(threadService, logger),
+    createSearchLogsTool(logBuffer, logger),
   ];
 
   if (googleMapsApiKey) {
