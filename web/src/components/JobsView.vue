@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   fetchJobs,
   fetchJob,
@@ -10,6 +10,7 @@ import {
   type Job,
   type JobRun,
   type SkillInfo,
+  type SkillFieldMeta,
 } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog.vue';
 
@@ -28,8 +29,7 @@ const formSchedule = ref('');
 const formRunAt = ref('');
 const formPrompt = ref('');
 const formSkillName = ref('');
-const formSkillConfig = ref('{}');
-const formSkillConfigError = ref('');
+const skillConfigValues = ref<Record<string, unknown>>({});
 const formNotify = ref(true);
 const formEnabled = ref(true);
 const formMaxRetries = ref(3);
@@ -49,7 +49,20 @@ const selectedSkill = computed(() => {
   return skills.value.find((s) => s.name === formSkillName.value) ?? null;
 });
 
+/** Visible config fields (excludes literals which are auto-filled) */
+const visibleFields = computed(() => {
+  if (!selectedSkill.value) return [];
+  return selectedSkill.value.fields.filter((f) => f.type !== 'literal');
+});
+
 const hasSkills = computed(() => skills.value.length > 0);
+
+// When skill selection changes, reset config values to defaults
+watch(formSkillName, () => {
+  if (!editingId.value) {
+    initSkillConfigDefaults();
+  }
+});
 
 onMounted(async () => {
   await Promise.all([loadJobs(), loadSkills()]);
@@ -71,9 +84,29 @@ async function loadSkills() {
   try {
     skills.value = await fetchSkills();
   } catch (_e) {
-    // Skills endpoint may not be available — not critical
     skills.value = [];
   }
+}
+
+function initSkillConfigDefaults() {
+  const skill = selectedSkill.value;
+  if (!skill) {
+    skillConfigValues.value = {};
+    return;
+  }
+  const values: Record<string, unknown> = {};
+  for (const field of skill.fields) {
+    if (field.default !== undefined) {
+      values[field.key] = field.default;
+    } else if (field.type === 'number') {
+      values[field.key] = '';
+    } else if (field.type === 'boolean') {
+      values[field.key] = false;
+    } else {
+      values[field.key] = '';
+    }
+  }
+  skillConfigValues.value = values;
 }
 
 function resetForm() {
@@ -85,8 +118,7 @@ function resetForm() {
   formRunAt.value = '';
   formPrompt.value = '';
   formSkillName.value = skills.value[0]?.name ?? '';
-  formSkillConfig.value = '{}';
-  formSkillConfigError.value = '';
+  initSkillConfigDefaults();
   formNotify.value = true;
   formEnabled.value = true;
   formMaxRetries.value = 3;
@@ -107,8 +139,14 @@ function openEditForm(job: Job) {
   formRunAt.value = '';
   formPrompt.value = job.prompt ?? '';
   formSkillName.value = job.skill_name ?? (skills.value[0]?.name ?? '');
-  formSkillConfig.value = job.skill_config ? JSON.stringify(job.skill_config, null, 2) : '{}';
-  formSkillConfigError.value = '';
+
+  // Populate skill config from existing job data
+  if (job.skill_config && job.skill_name) {
+    skillConfigValues.value = { ...job.skill_config };
+  } else {
+    initSkillConfigDefaults();
+  }
+
   formNotify.value = job.notify;
   formEnabled.value = job.enabled;
   formMaxRetries.value = job.max_retries;
@@ -121,19 +159,36 @@ function cancelForm() {
   resetForm();
 }
 
-function validateSkillConfig(): Record<string, unknown> | null {
-  try {
-    const parsed = JSON.parse(formSkillConfig.value);
-    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-      formSkillConfigError.value = 'Config must be a JSON object';
-      return null;
+function buildSkillConfig(): Record<string, unknown> {
+  const skill = selectedSkill.value;
+  if (!skill) return {};
+  const config: Record<string, unknown> = {};
+  for (const field of skill.fields) {
+    const raw = skillConfigValues.value[field.key];
+    if (field.type === 'literal') {
+      config[field.key] = field.literalValue;
+    } else if (field.type === 'number') {
+      const str = String(raw ?? '').trim();
+      if (str !== '') config[field.key] = Number(str);
+      // omit empty optional numbers — backend/skill default handles it
+    } else if (field.type === 'boolean') {
+      config[field.key] = Boolean(raw);
+    } else {
+      const str = String(raw ?? '').trim();
+      if (str !== '') config[field.key] = str;
     }
-    formSkillConfigError.value = '';
-    return parsed;
-  } catch {
-    formSkillConfigError.value = 'Invalid JSON';
-    return null;
   }
+  return config;
+}
+
+function getConfigFieldValue(key: string): string | number | boolean {
+  const val = skillConfigValues.value[key];
+  if (val === undefined || val === null) return '';
+  return val as string | number | boolean;
+}
+
+function setConfigFieldValue(key: string, value: unknown) {
+  skillConfigValues.value = { ...skillConfigValues.value, [key]: value };
 }
 
 async function handleSubmit() {
@@ -141,16 +196,6 @@ async function handleSubmit() {
   formError.value = '';
 
   const isSkill = formType.value === 'skill';
-
-  // Validate skill config if skill type
-  let skillConfig: Record<string, unknown> | null = null;
-  if (isSkill) {
-    skillConfig = validateSkillConfig();
-    if (skillConfig === null) {
-      formSaving.value = false;
-      return;
-    }
-  }
 
   const data: Record<string, unknown> = {
     name: formName.value,
@@ -170,7 +215,7 @@ async function handleSubmit() {
   // Job type specific fields
   if (isSkill) {
     data.skill_name = formSkillName.value;
-    data.skill_config = skillConfig;
+    data.skill_config = buildSkillConfig();
     data.prompt = null;
   } else {
     data.prompt = formPrompt.value || undefined;
@@ -246,6 +291,19 @@ async function toggleRuns(jobId: string) {
 function jobTypeLabel(job: Job): string {
   if (job.skill_name) return job.skill_name;
   return 'prompt';
+}
+
+function skillConfigSummary(job: Job): { key: string; value: string }[] {
+  if (!job.skill_config) return [];
+  return Object.entries(job.skill_config)
+    .filter(([key]) => key !== 'version')
+    .map(([key, value]) => ({ key, value: String(value) }));
+}
+
+function fieldPlaceholder(field: SkillFieldMeta): string {
+  if (field.default !== undefined) return String(field.default);
+  if (field.pattern) return field.pattern;
+  return '';
 }
 
 function formatRelativeTime(dateStr: string | null) {
@@ -408,6 +466,7 @@ function statusColor(status: string) {
 
             <!-- Skill (when type = skill) -->
             <div v-if="formType === 'skill' && hasSkills" class="space-y-3">
+              <!-- Skill selector -->
               <div>
                 <label class="block text-xs font-medium text-muted-foreground mb-1">Skill</label>
                 <select
@@ -423,28 +482,74 @@ function statusColor(status: string) {
                 </p>
               </div>
 
-              <div>
-                <label class="block text-xs font-medium text-muted-foreground mb-1">Configuration</label>
-                <!-- Schema hint -->
-                <div v-if="selectedSkill && Object.keys(selectedSkill.configSchema).length > 0" class="mb-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
-                  <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Expected fields</p>
-                  <div class="space-y-0.5">
-                    <div v-for="(desc, key) in selectedSkill.configSchema" :key="key" class="text-xs">
-                      <span class="font-mono text-foreground/80">{{ key }}</span>
-                      <span class="text-muted-foreground"> — {{ desc }}</span>
-                    </div>
+              <!-- Dynamic config fields -->
+              <div v-if="visibleFields.length > 0" class="space-y-3">
+                <label class="block text-xs font-medium text-muted-foreground">Configuration</label>
+
+                <div
+                  v-for="field in visibleFields"
+                  :key="field.key"
+                  class="space-y-1"
+                >
+                  <div class="flex items-baseline gap-1.5">
+                    <label class="text-xs font-medium text-foreground/80">
+                      {{ field.key }}
+                    </label>
+                    <span v-if="!field.required" class="text-[10px] text-muted-foreground/60">optional</span>
                   </div>
+
+                  <!-- Boolean field -->
+                  <label v-if="field.type === 'boolean'" class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      :checked="Boolean(getConfigFieldValue(field.key))"
+                      class="rounded border-border/60 text-primary focus:ring-primary/20"
+                      @change="setConfigFieldValue(field.key, ($event.target as HTMLInputElement).checked)"
+                    >
+                    <span class="text-xs text-muted-foreground">{{ field.description }}</span>
+                  </label>
+
+                  <!-- Number field -->
+                  <template v-else-if="field.type === 'number'">
+                    <input
+                      type="number"
+                      :value="getConfigFieldValue(field.key)"
+                      :min="field.min"
+                      :max="field.max"
+                      :placeholder="fieldPlaceholder(field)"
+                      class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                      @input="setConfigFieldValue(field.key, ($event.target as HTMLInputElement).value === '' ? '' : Number(($event.target as HTMLInputElement).value))"
+                    >
+                    <p class="text-[11px] text-muted-foreground leading-tight">
+                      {{ field.description }}
+                      <span v-if="field.min !== undefined || field.max !== undefined" class="text-muted-foreground/60">
+                        ({{ field.min !== undefined ? `min ${field.min}` : '' }}{{ field.min !== undefined && field.max !== undefined ? ', ' : '' }}{{ field.max !== undefined ? `max ${field.max}` : '' }})
+                      </span>
+                    </p>
+                  </template>
+
+                  <!-- String field -->
+                  <template v-else>
+                    <textarea
+                      v-if="field.description.toLowerCase().includes('template') || field.description.toLowerCase().includes('body')"
+                      :value="String(getConfigFieldValue(field.key))"
+                      rows="2"
+                      :placeholder="fieldPlaceholder(field)"
+                      class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-y"
+                      @input="setConfigFieldValue(field.key, ($event.target as HTMLTextAreaElement).value)"
+                    />
+                    <input
+                      v-else
+                      type="text"
+                      :value="String(getConfigFieldValue(field.key))"
+                      :placeholder="fieldPlaceholder(field)"
+                      :pattern="field.pattern"
+                      class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                      @input="setConfigFieldValue(field.key, ($event.target as HTMLInputElement).value)"
+                    >
+                    <p class="text-[11px] text-muted-foreground leading-tight">{{ field.description }}</p>
+                  </template>
                 </div>
-                <textarea
-                  v-model="formSkillConfig"
-                  rows="6"
-                  placeholder='{ "key": "value" }'
-                  class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-y min-h-[120px] font-mono"
-                  :class="formSkillConfigError ? 'border-red-500/50' : ''"
-                />
-                <p v-if="formSkillConfigError" class="text-xs text-red-500 mt-1">
-                  {{ formSkillConfigError }}
-                </p>
               </div>
             </div>
 
@@ -605,14 +710,21 @@ function statusColor(status: string) {
 
             <!-- Run history (expanded) -->
             <div v-if="expandedJobId === job.id" class="border-t border-border/60 px-4 py-3 bg-muted/30">
-              <!-- Job details -->
+              <!-- Job details: prompt -->
               <div v-if="job.prompt" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
                 <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Prompt</p>
                 <p class="text-xs text-foreground whitespace-pre-wrap">{{ job.prompt }}</p>
               </div>
-              <div v-if="job.skill_name && job.skill_config" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
-                <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Skill Config</p>
-                <pre class="text-xs text-foreground font-mono whitespace-pre-wrap">{{ JSON.stringify(job.skill_config, null, 2) }}</pre>
+
+              <!-- Job details: skill config as labeled fields -->
+              <div v-if="job.skill_name && job.skill_config && skillConfigSummary(job).length > 0" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Skill Config</p>
+                <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                  <template v-for="{ key, value } in skillConfigSummary(job)" :key="key">
+                    <span class="text-xs font-mono text-muted-foreground">{{ key }}</span>
+                    <span class="text-xs text-foreground">{{ value }}</span>
+                  </template>
+                </div>
               </div>
 
               <h3 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Recent Runs</h3>

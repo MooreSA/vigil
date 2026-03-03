@@ -2,6 +2,7 @@ import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { JobService } from '../../services/jobs.js';
 import type { SkillRegistry } from '../../skills/types.js';
+import { zodSchemaToFields } from '../../skills/schema-introspect.js';
 
 interface JobsRouteDeps {
   jobService: JobService;
@@ -38,16 +39,13 @@ export async function jobsRoute(
   const { jobService, skillRegistry } = opts;
 
   app.get('/skills', async () => {
-    const skills: Array<{ name: string; description: string; configSchema: Record<string, string> }> = [];
+    const skills: Array<{ name: string; description: string; fields: ReturnType<typeof zodSchemaToFields> }> = [];
     for (const skill of skillRegistry.values()) {
-      const schema: Record<string, string> = {};
-      if ('shape' in skill.configSchema && skill.configSchema.shape) {
-        const shape = skill.configSchema.shape as Record<string, z.ZodType>;
-        for (const [key, value] of Object.entries(shape)) {
-          schema[key] = value.description ?? 'unknown';
-        }
-      }
-      skills.push({ name: skill.name, description: skill.description, configSchema: schema });
+      skills.push({
+        name: skill.name,
+        description: skill.description,
+        fields: zodSchemaToFields(skill.configSchema),
+      });
     }
     return skills;
   });

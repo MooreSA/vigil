@@ -111,10 +111,22 @@ export async function fetchJob(id: string): Promise<{ job: Job; runs: JobRun[] }
   return res.json();
 }
 
+export interface SkillFieldMeta {
+  key: string;
+  type: 'string' | 'number' | 'boolean' | 'literal';
+  description: string;
+  required: boolean;
+  default?: unknown;
+  min?: number;
+  max?: number;
+  pattern?: string;
+  literalValue?: unknown;
+}
+
 export interface SkillInfo {
   name: string;
   description: string;
-  configSchema: Record<string, string>;
+  fields: SkillFieldMeta[];
 }
 
 export async function fetchSkills(): Promise<SkillInfo[]> {
