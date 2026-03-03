@@ -123,7 +123,7 @@ const schedulerService = new SchedulerService({
   appUrl: config.appUrl,
 });
 
-const server = buildServer({ logger, db, agentService, threadService, memoryService, userProfileService, eventBus, jobService });
+const server = buildServer({ logger, db, agentService, threadService, memoryService, userProfileService, eventBus, jobService, skillRegistry });
 
 const port = config.port;
 

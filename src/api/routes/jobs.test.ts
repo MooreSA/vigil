@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import Fastify from 'fastify';
 import { jobsRoute } from './jobs.js';
 import type { JobService } from '../../services/jobs.js';
+import type { SkillRegistry } from '../../skills/types.js';
 
 function mockJobService(): JobService {
   return {
@@ -14,10 +15,16 @@ function mockJobService(): JobService {
   } as unknown as JobService;
 }
 
+function mockSkillRegistry(): SkillRegistry {
+  return new Map();
+}
+
 let jobService: ReturnType<typeof mockJobService>;
+let skillRegistry: SkillRegistry;
 
 beforeEach(() => {
   jobService = mockJobService();
+  skillRegistry = mockSkillRegistry();
 });
 
 async function buildApp() {
@@ -25,6 +32,7 @@ async function buildApp() {
   await app.register(jobsRoute, {
     prefix: '/v1',
     jobService,
+    skillRegistry,
   });
   await app.ready();
   return app;
@@ -51,16 +59,18 @@ describe('POST /v1/jobs', () => {
     });
   });
 
-  it('returns 400 for missing required fields', async () => {
+  it('returns 400 when neither schedule nor run_at provided', async () => {
+    vi.mocked(jobService.create).mockRejectedValue(new Error('Either schedule (cron) or run_at (timestamp) is required'));
     const app = await buildApp();
 
     const res = await app.inject({
       method: 'POST',
       url: '/v1/jobs',
-      payload: { name: 'No prompt' },
+      payload: { name: 'No schedule', prompt: 'Hello' },
     });
 
     expect(res.statusCode).toBe(400);
+    expect(res.json().error).toMatch(/Either schedule/);
   });
 
   it('returns 400 for invalid cron expression', async () => {

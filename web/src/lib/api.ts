@@ -111,23 +111,47 @@ export async function fetchJob(id: string): Promise<{ job: Job; runs: JobRun[] }
   return res.json();
 }
 
-export async function createJob(data: Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries'>>): Promise<Job> {
+export interface SkillInfo {
+  name: string;
+  description: string;
+  configSchema: Record<string, string>;
+}
+
+export async function fetchSkills(): Promise<SkillInfo[]> {
+  const res = await fetch('/v1/skills');
+  if (!res.ok) throw new Error(`Failed to fetch skills: ${res.status}`);
+  return res.json();
+}
+
+export type CreateJobInput = Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries' | 'skill_name' | 'skill_config'>> & {
+  run_at?: string | null;
+};
+
+export type UpdateJobInput = Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries' | 'skill_name' | 'skill_config'>>;
+
+export async function createJob(data: CreateJobInput): Promise<Job> {
   const res = await fetch('/v1/jobs', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(`Failed to create job: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? `Failed to create job: ${res.status}`);
+  }
   return res.json();
 }
 
-export async function updateJob(id: string, data: Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries'>>): Promise<Job> {
+export async function updateJob(id: string, data: UpdateJobInput): Promise<Job> {
   const res = await fetch(`/v1/jobs/${id}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(data),
   });
-  if (!res.ok) throw new Error(`Failed to update job: ${res.status}`);
+  if (!res.ok) {
+    const body = await res.json().catch(() => null);
+    throw new Error(body?.error ?? `Failed to update job: ${res.status}`);
+  }
   return res.json();
 }
 

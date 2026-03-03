@@ -1,17 +1,20 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import {
   fetchJobs,
   fetchJob,
+  fetchSkills,
   createJob,
   updateJob,
   deleteJob,
   type Job,
   type JobRun,
+  type SkillInfo,
 } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog.vue';
 
 const jobs = ref<Job[]>([]);
+const skills = ref<SkillInfo[]>([]);
 const loading = ref(true);
 const error = ref('');
 
@@ -19,8 +22,14 @@ const error = ref('');
 const showForm = ref(false);
 const editingId = ref<string | null>(null);
 const formName = ref('');
+const formType = ref<'prompt' | 'skill'>('prompt');
+const formScheduleType = ref<'cron' | 'once'>('cron');
 const formSchedule = ref('');
+const formRunAt = ref('');
 const formPrompt = ref('');
+const formSkillName = ref('');
+const formSkillConfig = ref('{}');
+const formSkillConfigError = ref('');
 const formNotify = ref(true);
 const formEnabled = ref(true);
 const formMaxRetries = ref(3);
@@ -36,8 +45,14 @@ const expandedJobId = ref<string | null>(null);
 const runs = ref<JobRun[]>([]);
 const runsLoading = ref(false);
 
+const selectedSkill = computed(() => {
+  return skills.value.find((s) => s.name === formSkillName.value) ?? null;
+});
+
+const hasSkills = computed(() => skills.value.length > 0);
+
 onMounted(async () => {
-  await loadJobs();
+  await Promise.all([loadJobs(), loadSkills()]);
 });
 
 async function loadJobs() {
@@ -52,11 +67,26 @@ async function loadJobs() {
   }
 }
 
+async function loadSkills() {
+  try {
+    skills.value = await fetchSkills();
+  } catch (_e) {
+    // Skills endpoint may not be available — not critical
+    skills.value = [];
+  }
+}
+
 function resetForm() {
   editingId.value = null;
   formName.value = '';
+  formType.value = 'prompt';
+  formScheduleType.value = 'cron';
   formSchedule.value = '';
+  formRunAt.value = '';
   formPrompt.value = '';
+  formSkillName.value = skills.value[0]?.name ?? '';
+  formSkillConfig.value = '{}';
+  formSkillConfigError.value = '';
   formNotify.value = true;
   formEnabled.value = true;
   formMaxRetries.value = 3;
@@ -71,8 +101,14 @@ function openCreateForm() {
 function openEditForm(job: Job) {
   editingId.value = job.id;
   formName.value = job.name;
+  formType.value = job.skill_name ? 'skill' : 'prompt';
+  formScheduleType.value = job.schedule ? 'cron' : 'once';
   formSchedule.value = job.schedule ?? '';
+  formRunAt.value = '';
   formPrompt.value = job.prompt ?? '';
+  formSkillName.value = job.skill_name ?? (skills.value[0]?.name ?? '');
+  formSkillConfig.value = job.skill_config ? JSON.stringify(job.skill_config, null, 2) : '{}';
+  formSkillConfigError.value = '';
   formNotify.value = job.notify;
   formEnabled.value = job.enabled;
   formMaxRetries.value = job.max_retries;
@@ -85,18 +121,62 @@ function cancelForm() {
   resetForm();
 }
 
+function validateSkillConfig(): Record<string, unknown> | null {
+  try {
+    const parsed = JSON.parse(formSkillConfig.value);
+    if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
+      formSkillConfigError.value = 'Config must be a JSON object';
+      return null;
+    }
+    formSkillConfigError.value = '';
+    return parsed;
+  } catch {
+    formSkillConfigError.value = 'Invalid JSON';
+    return null;
+  }
+}
+
 async function handleSubmit() {
   formSaving.value = true;
   formError.value = '';
 
-  const data = {
+  const isSkill = formType.value === 'skill';
+
+  // Validate skill config if skill type
+  let skillConfig: Record<string, unknown> | null = null;
+  if (isSkill) {
+    skillConfig = validateSkillConfig();
+    if (skillConfig === null) {
+      formSaving.value = false;
+      return;
+    }
+  }
+
+  const data: Record<string, unknown> = {
     name: formName.value,
-    schedule: formSchedule.value || undefined,
-    prompt: formPrompt.value || undefined,
     notify: formNotify.value,
     enabled: formEnabled.value,
     max_retries: formMaxRetries.value,
   };
+
+  // Schedule
+  if (formScheduleType.value === 'cron') {
+    data.schedule = formSchedule.value || undefined;
+  } else {
+    data.run_at = formRunAt.value || undefined;
+    data.schedule = null;
+  }
+
+  // Job type specific fields
+  if (isSkill) {
+    data.skill_name = formSkillName.value;
+    data.skill_config = skillConfig;
+    data.prompt = null;
+  } else {
+    data.prompt = formPrompt.value || undefined;
+    data.skill_name = null;
+    data.skill_config = null;
+  }
 
   try {
     if (editingId.value) {
@@ -109,8 +189,8 @@ async function handleSubmit() {
     }
     showForm.value = false;
     resetForm();
-  } catch (_e) {
-    formError.value = editingId.value ? 'Failed to update job' : 'Failed to create job';
+  } catch (e) {
+    formError.value = e instanceof Error ? e.message : (editingId.value ? 'Failed to update job' : 'Failed to create job');
   } finally {
     formSaving.value = false;
   }
@@ -161,6 +241,11 @@ async function toggleRuns(jobId: string) {
   } finally {
     runsLoading.value = false;
   }
+}
+
+function jobTypeLabel(job: Job): string {
+  if (job.skill_name) return job.skill_name;
+  return 'prompt';
 }
 
 function formatRelativeTime(dateStr: string | null) {
@@ -215,7 +300,7 @@ function statusColor(status: string) {
               Scheduled Jobs
             </h1>
             <p class="text-sm text-muted-foreground">
-              Manage recurring tasks that run on a schedule.
+              Manage recurring tasks and scheduled skills.
             </p>
           </div>
           <button
@@ -243,7 +328,8 @@ function statusColor(status: string) {
             {{ editingId ? 'Edit Job' : 'New Job' }}
           </h2>
 
-          <div class="space-y-3">
+          <div class="space-y-4">
+            <!-- Name -->
             <div>
               <label class="block text-xs font-medium text-muted-foreground mb-1">Name</label>
               <input
@@ -254,17 +340,63 @@ function statusColor(status: string) {
               >
             </div>
 
+            <!-- Job Type Toggle -->
+            <div v-if="hasSkills">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">Type</label>
+              <div class="flex rounded-lg bg-muted/50 border border-border/40 p-0.5 w-fit">
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formType === 'prompt' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formType = 'prompt'"
+                >
+                  Prompt
+                </button>
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formType === 'skill' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formType = 'skill'"
+                >
+                  Skill
+                </button>
+              </div>
+            </div>
+
+            <!-- Schedule Type Toggle -->
             <div>
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Schedule (cron)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">Schedule</label>
+              <div class="flex rounded-lg bg-muted/50 border border-border/40 p-0.5 w-fit mb-2">
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formScheduleType === 'cron' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formScheduleType = 'cron'"
+                >
+                  Recurring
+                </button>
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formScheduleType === 'once' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formScheduleType = 'once'"
+                >
+                  One-time
+                </button>
+              </div>
               <input
+                v-if="formScheduleType === 'cron'"
                 v-model="formSchedule"
                 type="text"
                 placeholder="0 9 * * *"
                 class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 font-mono"
               >
+              <input
+                v-else
+                v-model="formRunAt"
+                type="datetime-local"
+                class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+              >
             </div>
 
-            <div>
+            <!-- Prompt (when type = prompt) -->
+            <div v-if="formType === 'prompt'">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Prompt</label>
               <textarea
                 v-model="formPrompt"
@@ -274,6 +406,49 @@ function statusColor(status: string) {
               />
             </div>
 
+            <!-- Skill (when type = skill) -->
+            <div v-if="formType === 'skill' && hasSkills" class="space-y-3">
+              <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Skill</label>
+                <select
+                  v-model="formSkillName"
+                  class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                >
+                  <option v-for="skill in skills" :key="skill.name" :value="skill.name">
+                    {{ skill.name }}
+                  </option>
+                </select>
+                <p v-if="selectedSkill" class="text-xs text-muted-foreground mt-1">
+                  {{ selectedSkill.description }}
+                </p>
+              </div>
+
+              <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Configuration</label>
+                <!-- Schema hint -->
+                <div v-if="selectedSkill && Object.keys(selectedSkill.configSchema).length > 0" class="mb-2 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                  <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Expected fields</p>
+                  <div class="space-y-0.5">
+                    <div v-for="(desc, key) in selectedSkill.configSchema" :key="key" class="text-xs">
+                      <span class="font-mono text-foreground/80">{{ key }}</span>
+                      <span class="text-muted-foreground"> — {{ desc }}</span>
+                    </div>
+                  </div>
+                </div>
+                <textarea
+                  v-model="formSkillConfig"
+                  rows="6"
+                  placeholder='{ "key": "value" }'
+                  class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-y min-h-[120px] font-mono"
+                  :class="formSkillConfigError ? 'border-red-500/50' : ''"
+                />
+                <p v-if="formSkillConfigError" class="text-xs text-red-500 mt-1">
+                  {{ formSkillConfigError }}
+                </p>
+              </div>
+            </div>
+
+            <!-- Max Retries -->
             <div>
               <label class="block text-xs font-medium text-muted-foreground mb-1">Max Retries</label>
               <input
@@ -285,6 +460,7 @@ function statusColor(status: string) {
               >
             </div>
 
+            <!-- Checkboxes -->
             <div class="flex items-center gap-6">
               <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
                 <input
@@ -382,6 +558,14 @@ function statusColor(status: string) {
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-foreground truncate">{{ job.name }}</span>
                   <span
+                    class="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded"
+                    :class="job.skill_name
+                      ? 'bg-violet-500/10 text-violet-500'
+                      : 'bg-blue-500/10 text-blue-500'"
+                  >
+                    {{ jobTypeLabel(job) }}
+                  </span>
+                  <span
                     v-if="!job.enabled"
                     class="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
                   >
@@ -390,6 +574,7 @@ function statusColor(status: string) {
                 </div>
                 <div class="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                   <span v-if="job.schedule" class="font-mono">{{ job.schedule }}</span>
+                  <span v-else-if="!job.schedule && job.next_run_at">once</span>
                   <span v-if="job.next_run_at && job.enabled">Next: {{ formatRelativeTime(job.next_run_at) }}</span>
                   <span v-if="job.last_run_at">Last: {{ formatRelativeTime(job.last_run_at) }}</span>
                 </div>
@@ -420,6 +605,16 @@ function statusColor(status: string) {
 
             <!-- Run history (expanded) -->
             <div v-if="expandedJobId === job.id" class="border-t border-border/60 px-4 py-3 bg-muted/30">
+              <!-- Job details -->
+              <div v-if="job.prompt" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Prompt</p>
+                <p class="text-xs text-foreground whitespace-pre-wrap">{{ job.prompt }}</p>
+              </div>
+              <div v-if="job.skill_name && job.skill_config" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Skill Config</p>
+                <pre class="text-xs text-foreground font-mono whitespace-pre-wrap">{{ JSON.stringify(job.skill_config, null, 2) }}</pre>
+              </div>
+
               <h3 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Recent Runs</h3>
               <div v-if="runsLoading" class="text-xs text-muted-foreground py-2">Loading...</div>
               <div v-else-if="runs.length === 0" class="text-xs text-muted-foreground py-2">No runs yet</div>

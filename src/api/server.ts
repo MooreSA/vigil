@@ -12,6 +12,7 @@ import type { MemoryService } from '../services/memory.js';
 import type { EventBus } from '../events.js';
 import type { JobService } from '../services/jobs.js';
 import type { UserProfileService } from '../services/user-profile.js';
+import type { SkillRegistry } from '../skills/types.js';
 import { completionsRoute } from './routes/completions.js';
 import { threadsRoute } from './routes/threads.js';
 import { eventsRoute } from './routes/events.js';
@@ -30,9 +31,10 @@ interface ServerDeps {
   userProfileService: UserProfileService;
   eventBus: EventBus;
   jobService: JobService;
+  skillRegistry: SkillRegistry;
 }
 
-export function buildServer({ logger, db, agentService, threadService, memoryService, userProfileService, eventBus, jobService }: ServerDeps) {
+export function buildServer({ logger, db, agentService, threadService, memoryService, userProfileService, eventBus, jobService, skillRegistry }: ServerDeps) {
   const app = Fastify({ loggerInstance: logger, forceCloseConnections: true });
 
   app.get('/healthz', async (_req, reply) => {
@@ -49,7 +51,7 @@ export function buildServer({ logger, db, agentService, threadService, memorySer
   app.register(threadsRoute, { prefix: '/v1', threadService });
   app.register(eventsRoute, { prefix: '/v1', eventBus });
   app.register(memoryRoute, { prefix: '/v1', memoryService });
-  app.register(jobsRoute, { prefix: '/v1', jobService });
+  app.register(jobsRoute, { prefix: '/v1', jobService, skillRegistry });
   app.register(userProfileRoute, { prefix: '/v1', userProfileService });
 
   // Serve built Vue app if web/dist exists
