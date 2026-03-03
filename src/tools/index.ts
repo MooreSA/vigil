@@ -12,6 +12,7 @@ import { createFetchUrlTool } from './fetch-url.js';
 import { createDirectionsTool } from './directions.js';
 import { createNotifyTool } from './notify.js';
 import { createListJobsTool, createCreateJobTool, createUpdateJobTool, createDeleteJobTool, createListSkillsTool } from './jobs.js';
+import { createToggleJobTool } from './toggle-job.js';
 import { createArchiveThreadTool } from './threads.js';
 
 interface ToolsDeps {
@@ -35,6 +36,7 @@ export function createTools({ memoryService, jobService, notificationService, th
     createCreateJobTool(jobService, logger),
     createUpdateJobTool(jobService, logger),
     createDeleteJobTool(jobService, logger),
+    createToggleJobTool(jobService, logger),
     createListSkillsTool(skillRegistry, logger),
     createArchiveThreadTool(threadService, logger),
   ];
