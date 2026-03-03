@@ -1,17 +1,21 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import {
   fetchJobs,
   fetchJob,
+  fetchSkills,
   createJob,
   updateJob,
   deleteJob,
   type Job,
   type JobRun,
+  type SkillInfo,
+  type SkillFieldMeta,
 } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog.vue';
 
 const jobs = ref<Job[]>([]);
+const skills = ref<SkillInfo[]>([]);
 const loading = ref(true);
 const error = ref('');
 
@@ -19,8 +23,13 @@ const error = ref('');
 const showForm = ref(false);
 const editingId = ref<string | null>(null);
 const formName = ref('');
+const formType = ref<'prompt' | 'skill'>('prompt');
+const formScheduleType = ref<'cron' | 'once'>('cron');
 const formSchedule = ref('');
+const formRunAt = ref('');
 const formPrompt = ref('');
+const formSkillName = ref('');
+const skillConfigValues = ref<Record<string, unknown>>({});
 const formNotify = ref(true);
 const formEnabled = ref(true);
 const formMaxRetries = ref(3);
@@ -36,8 +45,27 @@ const expandedJobId = ref<string | null>(null);
 const runs = ref<JobRun[]>([]);
 const runsLoading = ref(false);
 
+const selectedSkill = computed(() => {
+  return skills.value.find((s) => s.name === formSkillName.value) ?? null;
+});
+
+/** Visible config fields (excludes literals which are auto-filled) */
+const visibleFields = computed(() => {
+  if (!selectedSkill.value) return [];
+  return selectedSkill.value.fields.filter((f) => f.type !== 'literal');
+});
+
+const hasSkills = computed(() => skills.value.length > 0);
+
+// When skill selection changes, reset config values to defaults
+watch(formSkillName, () => {
+  if (!editingId.value) {
+    initSkillConfigDefaults();
+  }
+});
+
 onMounted(async () => {
-  await loadJobs();
+  await Promise.all([loadJobs(), loadSkills()]);
 });
 
 async function loadJobs() {
@@ -52,11 +80,45 @@ async function loadJobs() {
   }
 }
 
+async function loadSkills() {
+  try {
+    skills.value = await fetchSkills();
+  } catch (_e) {
+    skills.value = [];
+  }
+}
+
+function initSkillConfigDefaults() {
+  const skill = selectedSkill.value;
+  if (!skill) {
+    skillConfigValues.value = {};
+    return;
+  }
+  const values: Record<string, unknown> = {};
+  for (const field of skill.fields) {
+    if (field.default !== undefined) {
+      values[field.key] = field.default;
+    } else if (field.type === 'number') {
+      values[field.key] = '';
+    } else if (field.type === 'boolean') {
+      values[field.key] = false;
+    } else {
+      values[field.key] = '';
+    }
+  }
+  skillConfigValues.value = values;
+}
+
 function resetForm() {
   editingId.value = null;
   formName.value = '';
+  formType.value = 'prompt';
+  formScheduleType.value = 'cron';
   formSchedule.value = '';
+  formRunAt.value = '';
   formPrompt.value = '';
+  formSkillName.value = skills.value[0]?.name ?? '';
+  initSkillConfigDefaults();
   formNotify.value = true;
   formEnabled.value = true;
   formMaxRetries.value = 3;
@@ -71,8 +133,20 @@ function openCreateForm() {
 function openEditForm(job: Job) {
   editingId.value = job.id;
   formName.value = job.name;
+  formType.value = job.skill_name ? 'skill' : 'prompt';
+  formScheduleType.value = job.schedule ? 'cron' : 'once';
   formSchedule.value = job.schedule ?? '';
+  formRunAt.value = '';
   formPrompt.value = job.prompt ?? '';
+  formSkillName.value = job.skill_name ?? (skills.value[0]?.name ?? '');
+
+  // Populate skill config from existing job data
+  if (job.skill_config && job.skill_name) {
+    skillConfigValues.value = { ...job.skill_config };
+  } else {
+    initSkillConfigDefaults();
+  }
+
   formNotify.value = job.notify;
   formEnabled.value = job.enabled;
   formMaxRetries.value = job.max_retries;
@@ -85,18 +159,69 @@ function cancelForm() {
   resetForm();
 }
 
+function buildSkillConfig(): Record<string, unknown> {
+  const skill = selectedSkill.value;
+  if (!skill) return {};
+  const config: Record<string, unknown> = {};
+  for (const field of skill.fields) {
+    const raw = skillConfigValues.value[field.key];
+    if (field.type === 'literal') {
+      config[field.key] = field.literalValue;
+    } else if (field.type === 'number') {
+      const str = String(raw ?? '').trim();
+      if (str !== '') config[field.key] = Number(str);
+      // omit empty optional numbers — backend/skill default handles it
+    } else if (field.type === 'boolean') {
+      config[field.key] = Boolean(raw);
+    } else {
+      const str = String(raw ?? '').trim();
+      if (str !== '') config[field.key] = str;
+    }
+  }
+  return config;
+}
+
+function getConfigFieldValue(key: string): string | number | boolean {
+  const val = skillConfigValues.value[key];
+  if (val === undefined || val === null) return '';
+  return val as string | number | boolean;
+}
+
+function setConfigFieldValue(key: string, value: unknown) {
+  skillConfigValues.value = { ...skillConfigValues.value, [key]: value };
+}
+
 async function handleSubmit() {
   formSaving.value = true;
   formError.value = '';
 
-  const data = {
+  const isSkill = formType.value === 'skill';
+
+  const data: Record<string, unknown> = {
     name: formName.value,
-    schedule: formSchedule.value || undefined,
-    prompt: formPrompt.value || undefined,
     notify: formNotify.value,
     enabled: formEnabled.value,
     max_retries: formMaxRetries.value,
   };
+
+  // Schedule
+  if (formScheduleType.value === 'cron') {
+    data.schedule = formSchedule.value || undefined;
+  } else {
+    data.run_at = formRunAt.value || undefined;
+    data.schedule = null;
+  }
+
+  // Job type specific fields
+  if (isSkill) {
+    data.skill_name = formSkillName.value;
+    data.skill_config = buildSkillConfig();
+    data.prompt = null;
+  } else {
+    data.prompt = formPrompt.value || undefined;
+    data.skill_name = null;
+    data.skill_config = null;
+  }
 
   try {
     if (editingId.value) {
@@ -109,8 +234,8 @@ async function handleSubmit() {
     }
     showForm.value = false;
     resetForm();
-  } catch (_e) {
-    formError.value = editingId.value ? 'Failed to update job' : 'Failed to create job';
+  } catch (e) {
+    formError.value = e instanceof Error ? e.message : (editingId.value ? 'Failed to update job' : 'Failed to create job');
   } finally {
     formSaving.value = false;
   }
@@ -161,6 +286,24 @@ async function toggleRuns(jobId: string) {
   } finally {
     runsLoading.value = false;
   }
+}
+
+function jobTypeLabel(job: Job): string {
+  if (job.skill_name) return job.skill_name;
+  return 'prompt';
+}
+
+function skillConfigSummary(job: Job): { key: string; value: string }[] {
+  if (!job.skill_config) return [];
+  return Object.entries(job.skill_config)
+    .filter(([key]) => key !== 'version')
+    .map(([key, value]) => ({ key, value: String(value) }));
+}
+
+function fieldPlaceholder(field: SkillFieldMeta): string {
+  if (field.default !== undefined) return String(field.default);
+  if (field.pattern) return field.pattern;
+  return '';
 }
 
 function formatRelativeTime(dateStr: string | null) {
@@ -215,7 +358,7 @@ function statusColor(status: string) {
               Scheduled Jobs
             </h1>
             <p class="text-sm text-muted-foreground">
-              Manage recurring tasks that run on a schedule.
+              Manage recurring tasks and scheduled skills.
             </p>
           </div>
           <button
@@ -243,7 +386,8 @@ function statusColor(status: string) {
             {{ editingId ? 'Edit Job' : 'New Job' }}
           </h2>
 
-          <div class="space-y-3">
+          <div class="space-y-4">
+            <!-- Name -->
             <div>
               <label class="block text-xs font-medium text-muted-foreground mb-1">Name</label>
               <input
@@ -254,17 +398,63 @@ function statusColor(status: string) {
               >
             </div>
 
+            <!-- Job Type Toggle -->
+            <div v-if="hasSkills">
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">Type</label>
+              <div class="flex rounded-lg bg-muted/50 border border-border/40 p-0.5 w-fit">
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formType === 'prompt' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formType = 'prompt'"
+                >
+                  Prompt
+                </button>
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formType === 'skill' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formType = 'skill'"
+                >
+                  Skill
+                </button>
+              </div>
+            </div>
+
+            <!-- Schedule Type Toggle -->
             <div>
-              <label class="block text-xs font-medium text-muted-foreground mb-1">Schedule (cron)</label>
+              <label class="block text-xs font-medium text-muted-foreground mb-1.5">Schedule</label>
+              <div class="flex rounded-lg bg-muted/50 border border-border/40 p-0.5 w-fit mb-2">
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formScheduleType === 'cron' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formScheduleType = 'cron'"
+                >
+                  Recurring
+                </button>
+                <button
+                  class="px-3 py-1.5 rounded-md text-xs font-medium transition-all"
+                  :class="formScheduleType === 'once' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'"
+                  @click="formScheduleType = 'once'"
+                >
+                  One-time
+                </button>
+              </div>
               <input
+                v-if="formScheduleType === 'cron'"
                 v-model="formSchedule"
                 type="text"
                 placeholder="0 9 * * *"
                 class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 font-mono"
               >
+              <input
+                v-else
+                v-model="formRunAt"
+                type="datetime-local"
+                class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+              >
             </div>
 
-            <div>
+            <!-- Prompt (when type = prompt) -->
+            <div v-if="formType === 'prompt'">
               <label class="block text-xs font-medium text-muted-foreground mb-1">Prompt</label>
               <textarea
                 v-model="formPrompt"
@@ -274,6 +464,96 @@ function statusColor(status: string) {
               />
             </div>
 
+            <!-- Skill (when type = skill) -->
+            <div v-if="formType === 'skill' && hasSkills" class="space-y-3">
+              <!-- Skill selector -->
+              <div>
+                <label class="block text-xs font-medium text-muted-foreground mb-1">Skill</label>
+                <select
+                  v-model="formSkillName"
+                  class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                >
+                  <option v-for="skill in skills" :key="skill.name" :value="skill.name">
+                    {{ skill.name }}
+                  </option>
+                </select>
+                <p v-if="selectedSkill" class="text-xs text-muted-foreground mt-1">
+                  {{ selectedSkill.description }}
+                </p>
+              </div>
+
+              <!-- Dynamic config fields -->
+              <div v-if="visibleFields.length > 0" class="space-y-3">
+                <label class="block text-xs font-medium text-muted-foreground">Configuration</label>
+
+                <div
+                  v-for="field in visibleFields"
+                  :key="field.key"
+                  class="space-y-1"
+                >
+                  <div class="flex items-baseline gap-1.5">
+                    <label class="text-xs font-medium text-foreground/80">
+                      {{ field.key }}
+                    </label>
+                    <span v-if="!field.required" class="text-[10px] text-muted-foreground/60">optional</span>
+                  </div>
+
+                  <!-- Boolean field -->
+                  <label v-if="field.type === 'boolean'" class="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      :checked="Boolean(getConfigFieldValue(field.key))"
+                      class="rounded border-border/60 text-primary focus:ring-primary/20"
+                      @change="setConfigFieldValue(field.key, ($event.target as HTMLInputElement).checked)"
+                    >
+                    <span class="text-xs text-muted-foreground">{{ field.description }}</span>
+                  </label>
+
+                  <!-- Number field -->
+                  <template v-else-if="field.type === 'number'">
+                    <input
+                      type="number"
+                      :value="getConfigFieldValue(field.key)"
+                      :min="field.min"
+                      :max="field.max"
+                      :placeholder="fieldPlaceholder(field)"
+                      class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                      @input="setConfigFieldValue(field.key, ($event.target as HTMLInputElement).value === '' ? '' : Number(($event.target as HTMLInputElement).value))"
+                    >
+                    <p class="text-[11px] text-muted-foreground leading-tight">
+                      {{ field.description }}
+                      <span v-if="field.min !== undefined || field.max !== undefined" class="text-muted-foreground/60">
+                        ({{ field.min !== undefined ? `min ${field.min}` : '' }}{{ field.min !== undefined && field.max !== undefined ? ', ' : '' }}{{ field.max !== undefined ? `max ${field.max}` : '' }})
+                      </span>
+                    </p>
+                  </template>
+
+                  <!-- String field -->
+                  <template v-else>
+                    <textarea
+                      v-if="field.description.toLowerCase().includes('template') || field.description.toLowerCase().includes('body')"
+                      :value="String(getConfigFieldValue(field.key))"
+                      rows="2"
+                      :placeholder="fieldPlaceholder(field)"
+                      class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20 resize-y"
+                      @input="setConfigFieldValue(field.key, ($event.target as HTMLTextAreaElement).value)"
+                    />
+                    <input
+                      v-else
+                      type="text"
+                      :value="String(getConfigFieldValue(field.key))"
+                      :placeholder="fieldPlaceholder(field)"
+                      :pattern="field.pattern"
+                      class="w-full rounded-lg bg-muted/50 border border-border/40 px-3 py-2 text-sm text-foreground placeholder-muted-foreground/50 outline-none transition-all focus:border-primary/50 focus:ring-1 focus:ring-primary/20"
+                      @input="setConfigFieldValue(field.key, ($event.target as HTMLInputElement).value)"
+                    >
+                    <p class="text-[11px] text-muted-foreground leading-tight">{{ field.description }}</p>
+                  </template>
+                </div>
+              </div>
+            </div>
+
+            <!-- Max Retries -->
             <div>
               <label class="block text-xs font-medium text-muted-foreground mb-1">Max Retries</label>
               <input
@@ -285,6 +565,7 @@ function statusColor(status: string) {
               >
             </div>
 
+            <!-- Checkboxes -->
             <div class="flex items-center gap-6">
               <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer">
                 <input
@@ -382,6 +663,14 @@ function statusColor(status: string) {
                 <div class="flex items-center gap-2">
                   <span class="text-sm font-medium text-foreground truncate">{{ job.name }}</span>
                   <span
+                    class="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded"
+                    :class="job.skill_name
+                      ? 'bg-violet-500/10 text-violet-500'
+                      : 'bg-blue-500/10 text-blue-500'"
+                  >
+                    {{ jobTypeLabel(job) }}
+                  </span>
+                  <span
                     v-if="!job.enabled"
                     class="text-[10px] font-medium uppercase tracking-wider px-1.5 py-0.5 rounded bg-muted text-muted-foreground"
                   >
@@ -390,6 +679,7 @@ function statusColor(status: string) {
                 </div>
                 <div class="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
                   <span v-if="job.schedule" class="font-mono">{{ job.schedule }}</span>
+                  <span v-else-if="!job.schedule && job.next_run_at">once</span>
                   <span v-if="job.next_run_at && job.enabled">Next: {{ formatRelativeTime(job.next_run_at) }}</span>
                   <span v-if="job.last_run_at">Last: {{ formatRelativeTime(job.last_run_at) }}</span>
                 </div>
@@ -420,6 +710,23 @@ function statusColor(status: string) {
 
             <!-- Run history (expanded) -->
             <div v-if="expandedJobId === job.id" class="border-t border-border/60 px-4 py-3 bg-muted/30">
+              <!-- Job details: prompt -->
+              <div v-if="job.prompt" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Prompt</p>
+                <p class="text-xs text-foreground whitespace-pre-wrap">{{ job.prompt }}</p>
+              </div>
+
+              <!-- Job details: skill config as labeled fields -->
+              <div v-if="job.skill_name && job.skill_config && skillConfigSummary(job).length > 0" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1.5">Skill Config</p>
+                <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1">
+                  <template v-for="{ key, value } in skillConfigSummary(job)" :key="key">
+                    <span class="text-xs font-mono text-muted-foreground">{{ key }}</span>
+                    <span class="text-xs text-foreground">{{ value }}</span>
+                  </template>
+                </div>
+              </div>
+
               <h3 class="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">Recent Runs</h3>
               <div v-if="runsLoading" class="text-xs text-muted-foreground py-2">Loading...</div>
               <div v-else-if="runs.length === 0" class="text-xs text-muted-foreground py-2">No runs yet</div>

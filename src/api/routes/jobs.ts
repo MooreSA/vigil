@@ -1,34 +1,54 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import type { JobService } from '../../services/jobs.js';
+import type { SkillRegistry } from '../../skills/types.js';
+import { zodSchemaToFields } from '../../skills/schema-introspect.js';
 
 interface JobsRouteDeps {
   jobService: JobService;
+  skillRegistry: SkillRegistry;
 }
 
 const createBodySchema = z.object({
   name: z.string().min(1),
-  schedule: z.string().min(1),
-  prompt: z.string().min(1),
+  schedule: z.string().min(1).nullable().optional(),
+  run_at: z.string().optional(),
+  prompt: z.string().min(1).nullable().optional(),
   notify: z.boolean().optional(),
   enabled: z.boolean().optional(),
   max_retries: z.number().int().min(0).optional(),
+  skill_name: z.string().min(1).nullable().optional(),
+  skill_config: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 const updateBodySchema = z.object({
   name: z.string().min(1).optional(),
-  schedule: z.string().min(1).optional(),
-  prompt: z.string().min(1).optional(),
+  schedule: z.string().min(1).nullable().optional(),
+  prompt: z.string().min(1).nullable().optional(),
   notify: z.boolean().optional(),
   enabled: z.boolean().optional(),
   max_retries: z.number().int().min(0).optional(),
+  skill_name: z.string().min(1).nullable().optional(),
+  skill_config: z.record(z.string(), z.unknown()).nullable().optional(),
 });
 
 export async function jobsRoute(
   app: FastifyInstance,
   opts: JobsRouteDeps,
 ) {
-  const { jobService } = opts;
+  const { jobService, skillRegistry } = opts;
+
+  app.get('/skills', async () => {
+    const skills: Array<{ name: string; description: string; fields: ReturnType<typeof zodSchemaToFields> }> = [];
+    for (const skill of skillRegistry.values()) {
+      skills.push({
+        name: skill.name,
+        description: skill.description,
+        fields: zodSchemaToFields(skill.configSchema),
+      });
+    }
+    return skills;
+  });
 
   app.post('/jobs', async (request, reply) => {
     const parsed = createBodySchema.safeParse(request.body);
@@ -40,7 +60,7 @@ export async function jobsRoute(
       const job = await jobService.create(parsed.data);
       return reply.code(201).send(job);
     } catch (err) {
-      if (err instanceof Error && err.message.startsWith('Invalid cron')) {
+      if (err instanceof Error && (err.message.startsWith('Invalid cron') || err.message.startsWith('Either schedule') || err.message.startsWith('Unknown skill'))) {
         return reply.code(400).send({ error: err.message });
       }
       throw err;
@@ -76,7 +96,7 @@ export async function jobsRoute(
       }
       return updated;
     } catch (err) {
-      if (err instanceof Error && err.message.startsWith('Invalid cron')) {
+      if (err instanceof Error && (err.message.startsWith('Invalid cron') || err.message.startsWith('Unknown skill'))) {
         return reply.code(400).send({ error: err.message });
       }
       throw err;
