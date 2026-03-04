@@ -12,13 +12,21 @@ export interface SkillFieldMeta {
   literalValue?: unknown;
 }
 
+interface Def {
+  type: string;
+  innerType?: ZodType;
+  defaultValue?: unknown;
+  values?: unknown[];
+  checks?: Array<{ _zod?: { def?: { pattern?: unknown } } }>;
+}
+
 /**
- * Walk a Zod type's _def chain, unwrapping wrappers like ZodDefault, ZodOptional,
- * and ZodNullable, collecting metadata along the way.
+ * Walk a Zod v4 type's _def chain, unwrapping wrappers like default, optional,
+ * and nullable, collecting metadata along the way.
  */
 function unwrapField(zodType: ZodType): {
   typeName: string;
-  def: Record<string, unknown>;
+  innerType: ZodType;
   hasDefault: boolean;
   defaultValue?: unknown;
   required: boolean;
@@ -28,12 +36,11 @@ function unwrapField(zodType: ZodType): {
   let required = true;
   let current = zodType;
 
-  // Peel off wrappers
   for (;;) {
-    const def = (current as unknown as { _def: Record<string, unknown> })._def;
-    const typeName = def.typeName as string;
+    const def = (current as unknown as { _def: Def })._def;
+    const type = def.type;
 
-    if (typeName === 'ZodDefault') {
+    if (type === 'default') {
       hasDefault = true;
       defaultValue = def.defaultValue;
       if (typeof defaultValue === 'function') defaultValue = (defaultValue as () => unknown)();
@@ -41,19 +48,19 @@ function unwrapField(zodType: ZodType): {
       continue;
     }
 
-    if (typeName === 'ZodOptional' || typeName === 'ZodNullable') {
+    if (type === 'optional' || type === 'nullable') {
       required = false;
       current = def.innerType as ZodType;
       continue;
     }
 
-    return { typeName, def: def as Record<string, unknown>, hasDefault, defaultValue, required };
+    return { typeName: type, innerType: current, hasDefault, defaultValue, required };
   }
 }
 
 export function zodSchemaToFields(schema: ZodType): SkillFieldMeta[] {
-  const def = (schema as unknown as { _def: Record<string, unknown> })._def;
-  if (def.typeName !== 'ZodObject') return [];
+  const def = (schema as unknown as { _def: Def })._def;
+  if (def.type !== 'object') return [];
 
   const shape = (schema as unknown as { shape: Record<string, ZodType> }).shape;
   if (!shape) return [];
@@ -62,16 +69,18 @@ export function zodSchemaToFields(schema: ZodType): SkillFieldMeta[] {
 
   for (const [key, fieldType] of Object.entries(shape)) {
     const description = fieldType.description ?? '';
-    const { typeName, def: innerDef, hasDefault, defaultValue, required } = unwrapField(fieldType);
+    const { typeName, innerType, hasDefault, defaultValue, required } = unwrapField(fieldType);
 
-    if (typeName === 'ZodLiteral') {
+    if (typeName === 'literal') {
+      const values = (innerType as unknown as { _def: Def })._def.values;
+      const literalValue = values?.[0];
       fields.push({
         key,
         type: 'literal',
         description,
         required: true,
-        literalValue: innerDef.value as unknown,
-        default: innerDef.value as unknown,
+        literalValue,
+        default: literalValue,
       });
       continue;
     }
@@ -80,23 +89,24 @@ export function zodSchemaToFields(schema: ZodType): SkillFieldMeta[] {
 
     if (hasDefault) field.default = defaultValue;
 
-    if (typeName === 'ZodString') {
+    if (typeName === 'string') {
       field.type = 'string';
-      const checks = innerDef.checks as Array<{ kind: string; regex?: RegExp }> | undefined;
+      const checks = (innerType as unknown as { _def: Def })._def.checks;
       if (checks) {
-        const regex = checks.find((c) => c.kind === 'regex');
-        if (regex?.regex) field.pattern = regex.regex.source;
+        for (const check of checks) {
+          const pattern = check._zod?.def?.pattern;
+          if (pattern instanceof RegExp) {
+            field.pattern = pattern.source;
+            break;
+          }
+        }
       }
-    } else if (typeName === 'ZodNumber') {
+    } else if (typeName === 'number') {
       field.type = 'number';
-      const checks = innerDef.checks as Array<{ kind: string; value?: number }> | undefined;
-      if (checks) {
-        const min = checks.find((c) => c.kind === 'min');
-        const max = checks.find((c) => c.kind === 'max');
-        if (min?.value !== undefined) field.min = min.value;
-        if (max?.value !== undefined) field.max = max.value;
-      }
-    } else if (typeName === 'ZodBoolean') {
+      const num = innerType as unknown as { minValue?: number | null; maxValue?: number | null };
+      if (num.minValue != null) field.min = num.minValue;
+      if (num.maxValue != null) field.max = num.maxValue;
+    } else if (typeName === 'boolean') {
       field.type = 'boolean';
     }
 
