@@ -7,6 +7,8 @@ import * as m0004 from './migrations/0004_nullable_job_schedule.js';
 import * as m0005 from './migrations/0005_job_notify.js';
 import * as m0006 from './migrations/0006_thread_archive.js';
 import * as m0007 from './migrations/0007_user_profile.js';
+import * as m0008 from './migrations/0008_job_tool_allowlist.js';
+import * as m0009 from './migrations/0009_user_profile_timezone.js';
 
 export interface MigrationResult {
   migrationName: string;
@@ -26,6 +28,8 @@ export async function runMigrations(db: Kysely<DB>): Promise<MigrationResult[]> 
           '0005_job_notify': m0005,
           '0006_thread_archive': m0006,
           '0007_user_profile': m0007,
+          '0008_job_tool_allowlist': m0008,
+          '0009_user_profile_timezone': m0009,
         };
       },
     },

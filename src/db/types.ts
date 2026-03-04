@@ -67,6 +67,7 @@ export interface JobRunsTable {
 export interface UserProfileTable {
   id: Generated<number>;
   content: string;
+  timezone: string;
   created_at: ColumnType<Date, never, never>;
   updated_at: ColumnType<Date, never, never>;
 }

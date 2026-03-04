@@ -6,6 +6,7 @@ import type { AgentService } from './agent.js';
 import type { ThreadService } from './threads.js';
 import type { NotificationService } from './notifications.js';
 import type { SkillRegistry } from '../skills/types.js';
+import type { UserProfileService } from './user-profile.js';
 
 const TICK_INTERVAL_MS = 30_000;
 const LOCK_REFRESH_INTERVAL_MS = 120_000;
@@ -16,6 +17,7 @@ interface SchedulerServiceDeps {
   agentService: AgentService;
   threadService: ThreadService;
   notificationService: NotificationService;
+  userProfileService: UserProfileService;
   skills: SkillRegistry;
   logger: Logger;
   appUrl?: string;
@@ -27,6 +29,7 @@ export class SchedulerService {
   private agentService: AgentService;
   private threadService: ThreadService;
   private notificationService: NotificationService;
+  private userProfileService: UserProfileService;
   private skills: SkillRegistry;
   private logger: Logger;
   private appUrl?: string;
@@ -39,6 +42,7 @@ export class SchedulerService {
     this.agentService = deps.agentService;
     this.threadService = deps.threadService;
     this.notificationService = deps.notificationService;
+    this.userProfileService = deps.userProfileService;
     this.skills = deps.skills;
     this.logger = deps.logger;
     this.appUrl = deps.appUrl;
@@ -72,6 +76,7 @@ export class SchedulerService {
       }
 
       // 2. Find due jobs and create runs
+      const timezone = await this.userProfileService.getTimezone();
       const dueJobs = await this.jobRepo.findDue();
       for (const job of dueJobs) {
         const created = await this.jobRunRepo.createIdempotent(job.id, job.next_run_at);
@@ -80,7 +85,7 @@ export class SchedulerService {
         }
 
         // Advance next_run_at
-        const nextFireTime = this.computeNextRun(job.schedule);
+        const nextFireTime = this.computeNextRun(job.schedule, timezone);
         if (nextFireTime) {
           await this.jobRepo.update(job.id, { next_run_at: nextFireTime });
         } else {
@@ -193,10 +198,10 @@ export class SchedulerService {
     }
   }
 
-  private computeNextRun(schedule: string | null): Date | null {
+  private computeNextRun(schedule: string | null, timezone?: string): Date | null {
     if (!schedule) return null;
     try {
-      const cron = new Cron(schedule);
+      const cron = new Cron(schedule, { timezone });
       const next = cron.nextRun();
       return next;
     } catch {

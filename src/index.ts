@@ -78,6 +78,7 @@ const skillRegistry = createSkillRegistry({
 const jobService = new JobService({
   jobRepo,
   jobRunRepo,
+  userProfileService,
   validSkillNames: new Set(skillRegistry.keys()),
   logger: logger.child({ service: 'jobs' }),
 });
@@ -86,6 +87,7 @@ const tools = createTools({
   memoryService,
   jobService,
   notificationService,
+  userProfileService,
   threadService,
   skillRegistry,
   logBuffer,
@@ -121,6 +123,7 @@ const schedulerService = new SchedulerService({
   agentService,
   threadService,
   notificationService,
+  userProfileService,
   skills: skillRegistry,
   logger: logger.child({ service: 'scheduler' }),
   appUrl: config.appUrl,

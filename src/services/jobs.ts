@@ -2,10 +2,12 @@ import { Cron } from 'croner';
 import type { Logger } from '../logger.js';
 import type { JobRepository, UpdateJobInput as RepoUpdateInput } from '../repositories/jobs.js';
 import type { JobRunRepository } from '../repositories/job-runs.js';
+import type { UserProfileService } from './user-profile.js';
 
 interface JobServiceDeps {
   jobRepo: JobRepository;
   jobRunRepo: JobRunRepository;
+  userProfileService: UserProfileService;
   validSkillNames: Set<string>;
   logger: Logger;
 }
@@ -38,12 +40,14 @@ interface UpdateJobInput {
 export class JobService {
   private jobRepo: JobRepository;
   private jobRunRepo: JobRunRepository;
+  private userProfileService: UserProfileService;
   private validSkillNames: Set<string>;
   private logger: Logger;
 
   constructor(deps: JobServiceDeps) {
     this.jobRepo = deps.jobRepo;
     this.jobRunRepo = deps.jobRunRepo;
+    this.userProfileService = deps.userProfileService;
     this.validSkillNames = deps.validSkillNames;
     this.logger = deps.logger;
   }
@@ -59,7 +63,8 @@ export class JobService {
 
     if (input.schedule) {
       // Recurring job — compute next fire time from cron
-      const computed = this.computeNextRun(input.schedule);
+      const timezone = await this.userProfileService.getTimezone();
+      const computed = this.computeNextRun(input.schedule, timezone);
       if (!computed) {
         throw new Error(`Invalid cron expression: ${input.schedule}`);
       }
@@ -112,7 +117,8 @@ export class JobService {
 
     // Recompute next_run_at if schedule changes
     if (fields.schedule) {
-      const nextRunAt = this.computeNextRun(fields.schedule);
+      const timezone = await this.userProfileService.getTimezone();
+      const nextRunAt = this.computeNextRun(fields.schedule, timezone);
       if (!nextRunAt) {
         throw new Error(`Invalid cron expression: ${fields.schedule}`);
       }
@@ -130,10 +136,10 @@ export class JobService {
     return this.jobRunRepo.findByJobId(jobId);
   }
 
-  private computeNextRun(schedule: string | null): Date | null {
+  private computeNextRun(schedule: string | null, timezone?: string): Date | null {
     if (!schedule) return null;
     try {
-      const cron = new Cron(schedule);
+      const cron = new Cron(schedule, { timezone });
       return cron.nextRun();
     } catch {
       return null;

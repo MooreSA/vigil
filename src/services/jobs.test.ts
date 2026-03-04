@@ -3,8 +3,17 @@ import pino from 'pino';
 import { JobService } from './jobs.js';
 import type { JobRepository } from '../repositories/jobs.js';
 import type { JobRunRepository } from '../repositories/job-runs.js';
+import type { UserProfileService } from './user-profile.js';
 
 const logger = pino({ level: 'silent' });
+
+function mockUserProfileService(): UserProfileService {
+  return {
+    get: vi.fn().mockResolvedValue({ content: '', timezone: 'UTC' }),
+    getTimezone: vi.fn().mockResolvedValue('UTC'),
+    update: vi.fn(),
+  } as unknown as UserProfileService;
+}
 
 function mockJobRepo(): JobRepository {
   return {
@@ -56,12 +65,14 @@ function mockJobRunRepo(): JobRunRepository {
 
 let jobRepo: ReturnType<typeof mockJobRepo>;
 let jobRunRepo: ReturnType<typeof mockJobRunRepo>;
+let userProfileService: ReturnType<typeof mockUserProfileService>;
 let service: JobService;
 
 beforeEach(() => {
   jobRepo = mockJobRepo();
   jobRunRepo = mockJobRunRepo();
-  service = new JobService({ jobRepo, jobRunRepo, validSkillNames: new Set(['departure-check']), logger });
+  userProfileService = mockUserProfileService();
+  service = new JobService({ jobRepo, jobRunRepo, userProfileService, validSkillNames: new Set(['departure-check']), logger });
 });
 
 describe('JobService', () => {

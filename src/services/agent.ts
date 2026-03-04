@@ -207,12 +207,13 @@ export class AgentService {
       const currentTime = now.toLocaleString('en-US', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
         hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+        timeZone: userProfile.timezone,
       });
 
       let systemContent = `${BASE_INSTRUCTIONS}\n\nCurrent time: ${currentTime}`;
 
-      if (userProfile) {
-        systemContent += `\n\nUser profile:\n${userProfile}`;
+      if (userProfile.content) {
+        systemContent += `\n\nUser profile:\n${userProfile.content}`;
       }
 
       if (memories.length > 0) {

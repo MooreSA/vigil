@@ -1,10 +1,20 @@
 import { tool } from '@openai/agents';
 import { z } from 'zod';
 import type { JobService } from '../services/jobs.js';
+import type { UserProfileService } from '../services/user-profile.js';
 import type { Logger } from '../logger.js';
 import type { SkillRegistry } from '../skills/types.js';
 
-export function createListJobsTool(jobService: JobService, logger: Logger) {
+function formatDateTime(date: Date | null, timezone: string): string {
+  if (!date) return 'n/a';
+  return date.toLocaleString('en-US', {
+    weekday: 'short', year: 'numeric', month: 'short', day: 'numeric',
+    hour: '2-digit', minute: '2-digit', timeZoneName: 'short',
+    timeZone: timezone,
+  });
+}
+
+export function createListJobsTool(jobService: JobService, userProfileService: UserProfileService, logger: Logger) {
   return tool({
     name: 'list_jobs',
     description:
@@ -12,14 +22,14 @@ export function createListJobsTool(jobService: JobService, logger: Logger) {
     parameters: z.object({}),
     execute: async () => {
       logger.info({ tool: 'list_jobs' }, 'Tool called: list_jobs');
-      const jobs = await jobService.list();
+      const [jobs, timezone] = await Promise.all([jobService.list(), userProfileService.getTimezone()]);
 
       if (jobs.length === 0) {
         return 'No scheduled jobs.';
       }
 
       const lines = jobs.map((j) => {
-        const parts = [`- [id:${j.id}] "${j.name}" — ${j.schedule} — ${j.enabled ? 'enabled' : 'disabled'} — next: ${j.next_run_at?.toISOString() ?? 'n/a'}`];
+        const parts = [`- [id:${j.id}] "${j.name}" — ${j.schedule} — ${j.enabled ? 'enabled' : 'disabled'} — next: ${formatDateTime(j.next_run_at, timezone)}`];
         if (j.skill_name) parts.push(` — skill: ${j.skill_name}`);
         return parts.join('');
       });
@@ -29,7 +39,7 @@ export function createListJobsTool(jobService: JobService, logger: Logger) {
   });
 }
 
-export function createCreateJobTool(jobService: JobService, logger: Logger) {
+export function createCreateJobTool(jobService: JobService, userProfileService: UserProfileService, logger: Logger) {
   return tool({
     name: 'create_job',
     description:
@@ -60,8 +70,9 @@ export function createCreateJobTool(jobService: JobService, logger: Logger) {
           skill_config: skill_config ?? undefined,
         });
         logger.info({ tool: 'create_job', jobId: job.id }, 'Tool completed: create_job');
+        const timezone = await userProfileService.getTimezone();
         const suffix = job.skill_name ? ` — skill: ${job.skill_name}` : '';
-        return `Created job [id:${job.id}] "${job.name}" — schedule: ${job.schedule}${suffix} — next run: ${job.next_run_at?.toISOString() ?? 'n/a'}`;
+        return `Created job [id:${job.id}] "${job.name}" — schedule: ${job.schedule}${suffix} — next run: ${formatDateTime(job.next_run_at, timezone)}`;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         logger.warn({ tool: 'create_job', err: message }, 'create_job failed');
@@ -71,7 +82,7 @@ export function createCreateJobTool(jobService: JobService, logger: Logger) {
   });
 }
 
-export function createUpdateJobTool(jobService: JobService, logger: Logger) {
+export function createUpdateJobTool(jobService: JobService, userProfileService: UserProfileService, logger: Logger) {
   return tool({
     name: 'update_job',
     description:
@@ -100,7 +111,8 @@ export function createUpdateJobTool(jobService: JobService, logger: Logger) {
           return `Job ${id} not found.`;
         }
         logger.info({ tool: 'update_job', jobId: id }, 'Tool completed: update_job');
-        return `Updated job [id:${job.id}] "${job.name}" — schedule: ${job.schedule} — ${job.enabled ? 'enabled' : 'disabled'} — next run: ${job.next_run_at?.toISOString() ?? 'n/a'}`;
+        const timezone = await userProfileService.getTimezone();
+        return `Updated job [id:${job.id}] "${job.name}" — schedule: ${job.schedule} — ${job.enabled ? 'enabled' : 'disabled'} — next run: ${formatDateTime(job.next_run_at, timezone)}`;
       } catch (err) {
         const message = err instanceof Error ? err.message : String(err);
         logger.warn({ tool: 'update_job', id, err: message }, 'update_job failed');

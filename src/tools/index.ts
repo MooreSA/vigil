@@ -2,6 +2,7 @@ import type { Tool } from '@openai/agents';
 import type { MemoryService } from '../services/memory.js';
 import type { JobService } from '../services/jobs.js';
 import type { NotificationService } from '../services/notifications.js';
+import type { UserProfileService } from '../services/user-profile.js';
 import type { ThreadService } from '../services/threads.js';
 import type { LogBuffer } from '../services/log-buffer.js';
 import type { Logger } from '../logger.js';
@@ -21,6 +22,7 @@ interface ToolsDeps {
   memoryService: MemoryService;
   jobService: JobService;
   notificationService: NotificationService;
+  userProfileService: UserProfileService;
   threadService: ThreadService;
   skillRegistry: SkillRegistry;
   logBuffer: LogBuffer;
@@ -28,16 +30,16 @@ interface ToolsDeps {
   googleMapsApiKey?: string;
 }
 
-export function createTools({ memoryService, jobService, notificationService, threadService, skillRegistry, logBuffer, logger, googleMapsApiKey }: ToolsDeps): Tool[] {
+export function createTools({ memoryService, jobService, notificationService, userProfileService, threadService, skillRegistry, logBuffer, logger, googleMapsApiKey }: ToolsDeps): Tool[] {
   const tools: Tool[] = [
     createRememberTool(memoryService, logger),
     createRecallTool(memoryService, logger),
-    createDatetimeTool(logger),
+    createDatetimeTool(logger, userProfileService),
     createFetchUrlTool(logger),
     createNotifyTool(notificationService, logger),
-    createListJobsTool(jobService, logger),
-    createCreateJobTool(jobService, logger),
-    createUpdateJobTool(jobService, logger),
+    createListJobsTool(jobService, userProfileService, logger),
+    createCreateJobTool(jobService, userProfileService, logger),
+    createUpdateJobTool(jobService, userProfileService, logger),
     createDeleteJobTool(jobService, logger),
     createToggleJobTool(jobService, logger),
     createListSkillsTool(skillRegistry, logger),

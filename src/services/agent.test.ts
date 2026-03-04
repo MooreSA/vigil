@@ -31,7 +31,8 @@ function mockMemoryService(): MemoryService {
 
 function mockUserProfileService(): UserProfileService {
   return {
-    get: vi.fn().mockResolvedValue(''),
+    get: vi.fn().mockResolvedValue({ content: '', timezone: 'UTC' }),
+    getTimezone: vi.fn().mockResolvedValue('UTC'),
     update: vi.fn(),
   } as unknown as UserProfileService;
 }
@@ -246,7 +247,7 @@ describe('AgentService', () => {
         { id: '1', thread_id: 't1', role: 'user', content: { role: 'user', content: 'hello' }, model: null, deleted_at: null, created_at: new Date() },
       ] as any);
 
-      vi.mocked(userProfileService.get).mockResolvedValue('My name is Seamus. I live in Dublin.');
+      vi.mocked(userProfileService.get).mockResolvedValue({ content: 'My name is Seamus. I live in Dublin.', timezone: 'UTC' });
 
       vi.mocked(threadService.getMessages).mockResolvedValueOnce([
         { id: '2', thread_id: 't1', role: 'system', content: { role: 'system', content: 'system prompt here' }, model: null, deleted_at: null, created_at: new Date() },
@@ -272,7 +273,7 @@ describe('AgentService', () => {
         { id: '1', thread_id: 't1', role: 'user', content: { role: 'user', content: 'hello' }, model: null, deleted_at: null, created_at: new Date() },
       ] as any);
 
-      vi.mocked(userProfileService.get).mockResolvedValue('');
+      vi.mocked(userProfileService.get).mockResolvedValue({ content: '', timezone: 'UTC' });
 
       vi.mocked(threadService.getMessages).mockResolvedValueOnce([
         { id: '2', thread_id: 't1', role: 'system', content: { role: 'system', content: 'system prompt here' }, model: null, deleted_at: null, created_at: new Date() },

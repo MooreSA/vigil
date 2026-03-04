@@ -7,8 +7,17 @@ import type { AgentService, StreamResult } from './agent.js';
 import type { ThreadService } from './threads.js';
 import type { NotificationService } from './notifications.js';
 import type { Skill, SkillRegistry } from '../skills/types.js';
+import type { UserProfileService } from './user-profile.js';
 
 const logger = pino({ level: 'silent' });
+
+function mockUserProfileService(): UserProfileService {
+  return {
+    get: vi.fn().mockResolvedValue({ content: '', timezone: 'UTC' }),
+    getTimezone: vi.fn().mockResolvedValue('UTC'),
+    update: vi.fn(),
+  } as unknown as UserProfileService;
+}
 
 function mockJobRepo(): JobRepository {
   return {
@@ -72,6 +81,7 @@ let jobRunRepo: ReturnType<typeof mockJobRunRepo>;
 let agentService: ReturnType<typeof mockAgentService>;
 let threadService: ReturnType<typeof mockThreadService>;
 let notificationService: ReturnType<typeof mockNotificationService>;
+let userProfileService: ReturnType<typeof mockUserProfileService>;
 let scheduler: SchedulerService;
 
 beforeEach(() => {
@@ -80,12 +90,14 @@ beforeEach(() => {
   agentService = mockAgentService();
   threadService = mockThreadService();
   notificationService = mockNotificationService();
+  userProfileService = mockUserProfileService();
   scheduler = new SchedulerService({
     jobRepo,
     jobRunRepo,
     agentService,
     threadService,
     notificationService,
+    userProfileService,
     skills: new Map(),
     logger,
     appUrl: 'https://app.example.com',
@@ -343,6 +355,7 @@ describe('SchedulerService', () => {
         agentService,
         threadService,
         notificationService,
+        userProfileService,
         skills,
         logger,
         appUrl: 'https://app.example.com',

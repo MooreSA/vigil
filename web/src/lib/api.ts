@@ -52,17 +52,22 @@ export async function fetchThread(id: string): Promise<{ thread: Thread; message
   return res.json();
 }
 
-export async function fetchUserProfile(): Promise<{ content: string }> {
+export interface UserProfile {
+  content: string;
+  timezone: string;
+}
+
+export async function fetchUserProfile(): Promise<UserProfile> {
   const res = await fetch('/v1/user-profile');
   if (!res.ok) throw new Error(`Failed to fetch user profile: ${res.status}`);
   return res.json();
 }
 
-export async function updateUserProfile(content: string): Promise<{ content: string }> {
+export async function updateUserProfile(fields: { content?: string; timezone?: string }): Promise<UserProfile> {
   const res = await fetch('/v1/user-profile', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content }),
+    body: JSON.stringify(fields),
   });
   if (!res.ok) throw new Error(`Failed to update user profile: ${res.status}`);
   return res.json();

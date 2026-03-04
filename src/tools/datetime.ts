@@ -1,8 +1,9 @@
 import { tool } from '@openai/agents';
 import { z } from 'zod';
 import type { Logger } from '../logger.js';
+import type { UserProfileService } from '../services/user-profile.js';
 
-export function createDatetimeTool(logger: Logger) {
+export function createDatetimeTool(logger: Logger, userProfileService: UserProfileService) {
   return tool({
     name: 'current_datetime',
     description:
@@ -10,6 +11,7 @@ export function createDatetimeTool(logger: Logger) {
     parameters: z.object({}),
     execute: async () => {
       logger.info({ tool: 'current_datetime' }, 'Tool called: current_datetime');
+      const timezone = await userProfileService.getTimezone();
       const now = new Date();
       return now.toLocaleString('en-US', {
         weekday: 'long',
@@ -20,6 +22,7 @@ export function createDatetimeTool(logger: Logger) {
         minute: '2-digit',
         second: '2-digit',
         timeZoneName: 'short',
+        timeZone: timezone,
       });
     },
   });
