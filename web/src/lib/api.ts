@@ -79,6 +79,7 @@ export interface Job {
   max_retries: number;
   skill_name: string | null;
   skill_config: Record<string, unknown> | null;
+  tool_allowlist: string[] | null;
   notify: boolean;
   next_run_at: string | null;
   last_run_at: string | null;
@@ -135,11 +136,22 @@ export async function fetchSkills(): Promise<SkillInfo[]> {
   return res.json();
 }
 
-export type CreateJobInput = Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries' | 'skill_name' | 'skill_config'>> & {
+export type CreateJobInput = Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries' | 'skill_name' | 'skill_config' | 'tool_allowlist'>> & {
   run_at?: string | null;
 };
 
-export type UpdateJobInput = Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries' | 'skill_name' | 'skill_config'>>;
+export type UpdateJobInput = Partial<Pick<Job, 'name' | 'schedule' | 'prompt' | 'notify' | 'enabled' | 'max_retries' | 'skill_name' | 'skill_config' | 'tool_allowlist'>>;
+
+export interface ToolInfo {
+  name: string;
+  description: string;
+}
+
+export async function fetchTools(): Promise<ToolInfo[]> {
+  const res = await fetch('/v1/tools');
+  if (!res.ok) throw new Error(`Failed to fetch tools: ${res.status}`);
+  return res.json();
+}
 
 export async function createJob(data: CreateJobInput): Promise<Job> {
   const res = await fetch('/v1/jobs', {

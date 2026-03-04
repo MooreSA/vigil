@@ -111,6 +111,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: null,
         skill_config: null,
+        tool_allowlist: null,
         next_run_at: new Date('2026-02-27T08:00:00Z'),
         last_run_at: null,
         deleted_at: null,
@@ -138,6 +139,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: null,
         skill_config: null,
+        tool_allowlist: null,
         next_run_at: new Date('2020-01-01T00:00:00Z'),
         last_run_at: null,
         deleted_at: null,
@@ -162,6 +164,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: null,
         skill_config: null,
+        tool_allowlist: null,
         next_run_at: new Date('2026-02-27T15:00:00Z'),
         last_run_at: null,
         deleted_at: null,
@@ -201,6 +204,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: null,
         skill_config: null,
+        tool_allowlist: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,
@@ -212,7 +216,7 @@ describe('SchedulerService', () => {
       await scheduler.tick();
 
       expect(threadService.create).toHaveBeenCalledWith({ source: 'wake', job_run_id: '10' });
-      expect(agentService.runStream).toHaveBeenCalledWith('thread-1', 'Do stuff');
+      expect(agentService.runStream).toHaveBeenCalledWith('thread-1', 'Do stuff', undefined);
       expect(jobRunRepo.complete).toHaveBeenCalledWith('10', 'thread-1');
       expect(jobRepo.update).toHaveBeenCalledWith('1', { last_run_at: expect.any(Date) });
       expect(notificationService.notify).toHaveBeenCalledWith(
@@ -242,6 +246,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: null,
         skill_config: null,
+        tool_allowlist: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,
@@ -281,6 +286,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: null,
         skill_config: null,
+        tool_allowlist: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,
@@ -353,6 +359,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: 'test-skill',
         skill_config: { version: 1, foo: 'bar' },
+        tool_allowlist: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,
@@ -439,6 +446,7 @@ describe('SchedulerService', () => {
         max_retries: 3,
         skill_name: 'nonexistent',
         skill_config: {},
+        tool_allowlist: null,
         next_run_at: new Date(),
         last_run_at: null,
         deleted_at: null,

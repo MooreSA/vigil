@@ -20,6 +20,7 @@ interface CreateJobInput {
   max_retries?: number;
   skill_name?: string | null;
   skill_config?: Record<string, unknown> | null;
+  tool_allowlist?: string[] | null;
 }
 
 interface UpdateJobInput {
@@ -31,6 +32,7 @@ interface UpdateJobInput {
   max_retries?: number;
   skill_name?: string | null;
   skill_config?: Record<string, unknown> | null;
+  tool_allowlist?: string[] | null;
 }
 
 export class JobService {
@@ -85,6 +87,7 @@ export class JobService {
       max_retries: input.max_retries,
       skill_name: input.skill_name,
       skill_config: input.skill_config,
+      tool_allowlist: input.tool_allowlist,
       next_run_at: nextRunAt,
     });
   }

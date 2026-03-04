@@ -1,5 +1,6 @@
 import type { FastifyInstance } from 'fastify';
 import { z } from 'zod';
+import type { Tool } from '@openai/agents';
 import type { JobService } from '../../services/jobs.js';
 import type { SkillRegistry } from '../../skills/types.js';
 import { zodSchemaToFields } from '../../skills/schema-introspect.js';
@@ -7,6 +8,7 @@ import { zodSchemaToFields } from '../../skills/schema-introspect.js';
 interface JobsRouteDeps {
   jobService: JobService;
   skillRegistry: SkillRegistry;
+  agentTools: Tool[];
 }
 
 const createBodySchema = z.object({
@@ -19,6 +21,7 @@ const createBodySchema = z.object({
   max_retries: z.number().int().min(0).optional(),
   skill_name: z.string().min(1).nullable().optional(),
   skill_config: z.record(z.string(), z.unknown()).nullable().optional(),
+  tool_allowlist: z.array(z.string()).nullable().optional(),
 });
 
 const updateBodySchema = z.object({
@@ -30,13 +33,18 @@ const updateBodySchema = z.object({
   max_retries: z.number().int().min(0).optional(),
   skill_name: z.string().min(1).nullable().optional(),
   skill_config: z.record(z.string(), z.unknown()).nullable().optional(),
+  tool_allowlist: z.array(z.string()).nullable().optional(),
 });
 
 export async function jobsRoute(
   app: FastifyInstance,
   opts: JobsRouteDeps,
 ) {
-  const { jobService, skillRegistry } = opts;
+  const { jobService, skillRegistry, agentTools } = opts;
+
+  app.get('/tools', async () => {
+    return agentTools.map((t) => ({ name: t.name, description: 'description' in t ? (t.description ?? '') : '' }));
+  });
 
   app.get('/skills', async () => {
     const skills: Array<{ name: string; description: string; fields: ReturnType<typeof zodSchemaToFields> }> = [];

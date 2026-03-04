@@ -144,7 +144,11 @@ export class SchedulerService {
           // --- Agent prompt path ---
           const thread = await this.threadService.create({ source: 'wake', job_run_id: claimed.id });
 
-          const { stream } = await this.agentService.runStream(thread.id, job.prompt!);
+          const { stream } = await this.agentService.runStream(
+            thread.id,
+            job.prompt!,
+            job.tool_allowlist ? { toolAllowlist: job.tool_allowlist } : undefined,
+          );
           for await (const _event of stream) {
             // Drain — events are consumed but not forwarded anywhere
           }

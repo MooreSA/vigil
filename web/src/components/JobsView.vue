@@ -4,6 +4,7 @@ import {
   fetchJobs,
   fetchJob,
   fetchSkills,
+  fetchTools,
   createJob,
   updateJob,
   deleteJob,
@@ -11,11 +12,13 @@ import {
   type JobRun,
   type SkillInfo,
   type SkillFieldMeta,
+  type ToolInfo,
 } from '../lib/api';
 import ConfirmDialog from './ConfirmDialog.vue';
 
 const jobs = ref<Job[]>([]);
 const skills = ref<SkillInfo[]>([]);
+const availableTools = ref<ToolInfo[]>([]);
 const loading = ref(true);
 const error = ref('');
 
@@ -33,6 +36,8 @@ const skillConfigValues = ref<Record<string, unknown>>({});
 const formNotify = ref(true);
 const formEnabled = ref(true);
 const formMaxRetries = ref(3);
+const formRestrictTools = ref(false);
+const formToolAllowlist = ref<string[]>([]);
 const formSaving = ref(false);
 const formError = ref('');
 
@@ -65,7 +70,7 @@ watch(formSkillName, () => {
 });
 
 onMounted(async () => {
-  await Promise.all([loadJobs(), loadSkills()]);
+  await Promise.all([loadJobs(), loadSkills(), loadTools()]);
 });
 
 async function loadJobs() {
@@ -85,6 +90,14 @@ async function loadSkills() {
     skills.value = await fetchSkills();
   } catch (_e) {
     skills.value = [];
+  }
+}
+
+async function loadTools() {
+  try {
+    availableTools.value = await fetchTools();
+  } catch (_e) {
+    availableTools.value = [];
   }
 }
 
@@ -119,6 +132,8 @@ function resetForm() {
   formPrompt.value = '';
   formSkillName.value = skills.value[0]?.name ?? '';
   initSkillConfigDefaults();
+  formRestrictTools.value = false;
+  formToolAllowlist.value = [];
   formNotify.value = true;
   formEnabled.value = true;
   formMaxRetries.value = 3;
@@ -147,6 +162,8 @@ function openEditForm(job: Job) {
     initSkillConfigDefaults();
   }
 
+  formRestrictTools.value = job.tool_allowlist !== null;
+  formToolAllowlist.value = job.tool_allowlist ?? [];
   formNotify.value = job.notify;
   formEnabled.value = job.enabled;
   formMaxRetries.value = job.max_retries;
@@ -217,10 +234,12 @@ async function handleSubmit() {
     data.skill_name = formSkillName.value;
     data.skill_config = buildSkillConfig();
     data.prompt = null;
+    data.tool_allowlist = null;
   } else {
     data.prompt = formPrompt.value || undefined;
     data.skill_name = null;
     data.skill_config = null;
+    data.tool_allowlist = formRestrictTools.value ? formToolAllowlist.value : null;
   }
 
   try {
@@ -553,6 +572,39 @@ function statusColor(status: string) {
               </div>
             </div>
 
+            <!-- Tool Allowlist (prompt jobs only) -->
+            <div v-if="formType === 'prompt' && availableTools.length > 0">
+              <label class="flex items-center gap-2 text-sm text-foreground cursor-pointer mb-2">
+                <input
+                  v-model="formRestrictTools"
+                  type="checkbox"
+                  class="rounded border-border/60 text-primary focus:ring-primary/20"
+                >
+                Restrict tools
+              </label>
+              <div v-if="formRestrictTools" class="flex flex-wrap gap-2">
+                <label
+                  v-for="tool in availableTools"
+                  :key="tool.name"
+                  class="flex items-center gap-1.5 text-xs px-2 py-1.5 rounded-lg border cursor-pointer transition-all"
+                  :class="formToolAllowlist.includes(tool.name)
+                    ? 'border-primary/50 bg-primary/10 text-foreground'
+                    : 'border-border/40 bg-muted/30 text-muted-foreground hover:border-border/60'"
+                  :title="tool.description"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="formToolAllowlist.includes(tool.name)"
+                    class="sr-only"
+                    @change="formToolAllowlist = ($event.target as HTMLInputElement).checked
+                      ? [...formToolAllowlist, tool.name]
+                      : formToolAllowlist.filter(n => n !== tool.name)"
+                  >
+                  <span class="font-mono">{{ tool.name }}</span>
+                </label>
+              </div>
+            </div>
+
             <!-- Max Retries -->
             <div>
               <label class="block text-xs font-medium text-muted-foreground mb-1">Max Retries</label>
@@ -714,6 +766,18 @@ function statusColor(status: string) {
               <div v-if="job.prompt" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
                 <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Prompt</p>
                 <p class="text-xs text-foreground whitespace-pre-wrap">{{ job.prompt }}</p>
+              </div>
+
+              <!-- Job details: tool allowlist -->
+              <div v-if="job.tool_allowlist && job.tool_allowlist.length > 0" class="mb-3 rounded-lg bg-muted/30 border border-border/30 px-3 py-2">
+                <p class="text-[10px] font-medium uppercase tracking-wider text-muted-foreground mb-1">Allowed Tools</p>
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-for="tool in job.tool_allowlist"
+                    :key="tool"
+                    class="text-xs font-mono px-1.5 py-0.5 rounded bg-primary/10 text-primary"
+                  >{{ tool }}</span>
+                </div>
               </div>
 
               <!-- Job details: skill config as labeled fields -->

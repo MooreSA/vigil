@@ -33,6 +33,7 @@ async function buildApp() {
     prefix: '/v1',
     jobService,
     skillRegistry,
+    agentTools: [],
   });
   await app.ready();
   return app;

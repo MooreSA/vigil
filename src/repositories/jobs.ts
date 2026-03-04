@@ -10,6 +10,7 @@ export interface CreateJobInput {
   max_retries?: number;
   skill_name?: string | null;
   skill_config?: Record<string, unknown> | null;
+  tool_allowlist?: string[] | null;
   next_run_at: Date | string;
 }
 
@@ -22,6 +23,7 @@ export interface UpdateJobInput {
   max_retries?: number;
   skill_name?: string | null;
   skill_config?: Record<string, unknown> | null;
+  tool_allowlist?: string[] | null;
   next_run_at?: Date | string;
   last_run_at?: Date | string;
 }
@@ -41,6 +43,7 @@ export class JobRepository {
         max_retries: input.max_retries ?? 3,
         skill_name: input.skill_name ?? null,
         skill_config: input.skill_config ? JSON.stringify(input.skill_config) : null,
+        tool_allowlist: input.tool_allowlist ?? null,
         next_run_at: input.next_run_at,
       })
       .returningAll()

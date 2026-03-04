@@ -41,6 +41,7 @@ export interface JobsTable {
   max_retries: Generated<number>;
   skill_name: string | null;
   skill_config: JSONColumnType<Record<string, unknown>> | null;
+  tool_allowlist: string[] | null;
   notify: Generated<boolean>;
   next_run_at: ColumnType<Date, Date | string, Date | string>;
   last_run_at: ColumnType<Date | null, Date | string | null, Date | string | null>;

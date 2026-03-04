@@ -88,7 +88,7 @@ export class AgentService {
     this.run = deps.run ?? sdkRun;
   }
 
-  async runStream(threadId: string, userMessage: string): Promise<StreamResult> {
+  async runStream(threadId: string, userMessage: string, options?: { toolAllowlist?: string[] }): Promise<StreamResult> {
     await this.threadService.addMessage({
       thread_id: threadId,
       role: 'user',
@@ -110,11 +110,16 @@ export class AgentService {
       : messages;
     const inputItems = toInputItems(allMessages);
 
+    const toolAllowlist = options?.toolAllowlist;
+    const tools = toolAllowlist
+      ? this.tools.filter((t) => toolAllowlist.includes(t.name))
+      : this.tools;
+
     const agent = new Agent({
       name: 'vigil',
       instructions: BASE_INSTRUCTIONS,
       model: this.model,
-      tools: this.tools,
+      tools,
     });
 
     const result = await this.run(agent, inputItems, {
